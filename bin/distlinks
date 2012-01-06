@@ -1,0 +1,354 @@
+#! /usr/bin/env sh
+
+Message() {
+	printf '%s\n' "${0##*/}: ${*}" >&2
+}
+
+Fatal() {
+	Message "fatal: ${*}"
+	exit 1
+}
+
+Warning() {
+	Message "warning: ${*}"
+}
+
+Echo() {
+	printf '%s' "${*}"
+}
+
+eix_functions=`command -v eix-functions.sh 2>/dev/null` || eix_functions=''
+if [ -n "${eix_functions}" ]
+then	. "${eix_functions}"
+	ReadVar distdir DISTDIR
+else	distdir="`portageq distdir`" || distdir=''
+fi
+case "${distdir}" in
+/*)	test -d "${distdir}" || distdir='';;
+*)	distdir='';;
+esac
+[ -n "${distdir}" ] || Fatal 'cannot determine DISTDIR'
+
+
+obsdir=".obsolete"
+saveprefix=".save"
+save="${saveprefix}."
+
+maindir="${distdir%/*}"
+distfiles="${distdir##*/}"
+
+Usage() {
+	printf '%s\n' "Usage: ${0##*/} [options] create|delete|help
+For each directory in ${maindir}/* (except: ${distfiles} empty fetch)
+create/delete corresponding dirs ${distdir}/${save}*,
+creating/removing corresponding symbolic links in these directories
+(all permissions and ownerships are set appropriately, and the directories
+are flattened).
+If reasonable, the empty directory ${maindir}/empty
+is created/removed.
+
+Also a cleanup is made: Links in ${distdir}
+or in its ${obsdir}/${save}* subdirectories are deleted if they point to
+nonexisting files. Also empty ${save}* directories are removed.
+Without option -R, also certain links are removed from
+${distdir} or ${distdir}/${obsdir}
+(see option -r for more details).
+
+Finally, symlinks to ${distdir}/.restricted are created with
+trickyfetch ''  ${distdir} ''
+
+The following options are available:
+-1 Flattened structure: Do not use ${save}* subdirectories but directly
+   create the links in ${distdir}
+   In addition, create there links pointing to those files in
+   ${obsdir} or ${saveprefix}* which are not created by this script
+   (the ${obsdir}/*-src directories are moved out if possible).
+   This has the advantage that the getdelta script will find all your
+   old versions afterwards (unfortunately, this script is not looking
+   into subdirectories of $distdir).
+-f Force flattening: As -1, but flatten ${obsdir} not by creating links
+   but by moving all its content into ${distdir}
+-r This option is the default: Delete always corresponding links in
+   ${distdir} and in ${distdir}/${obsdir}
+   Also remove links in ${distdir}
+   which point to files in ${obsdir} or ${saveprefix}*
+-R Avoid using -r
+-k Keep all links/dirs which already exist
+-C No cleanup (do not remove nonexisiting links or empty ${save}* dirs)
+-a Create all links, even if corresponding links exist in
+	${distdir}
+or in its ${obsdir} subdirectory
+-T Omit execution of the trickyfetch script at the end
+-v Be verbose
+-O Do not attempt to make portage the owner of directories"
+	exit ${1:-1}
+}
+
+all=false
+keep=false
+deldist=:
+quiet=:
+cleanup=:
+flatten=false
+forceflatten=false
+chowner=:
+tricky=:
+OPTIND=1
+while getopts '1farRcCkvOT?hH' opt
+do	case "${opt}" in
+	1)	flatten=:; forceflatten=false;;
+	f)	flatten=:; forceflatten=:;;
+	a)	all=:;;
+	r)	deldist=:;;
+	r)	deldist=false;;
+	c)	cleanup=:;;
+	C)	cleanup=false;;
+	k)	keep=:;;
+	v)	quiet=false;;
+	O)	chowner=false;;
+	T)	tricky=false;;
+	*)	Usage 0;;
+	esac
+done
+shift $(( ${OPTIND} - 1 ))
+
+case "${1}" in
+[cC]*)	remove=false;;
+[dD]*)	remove=:;;
+[hH]*)	Usage 0;;
+*)	Usage;;
+esac
+
+if ${quiet}
+then
+Info() {
+	:
+}
+else
+Info() {
+	Echo "${*}"
+}
+fi
+
+
+Cd() {
+	cd -- "${1}" >/dev/null 2>&1 || Fatal "cannot cd to ${1}"
+}
+
+IsInCut() {
+	case "${1}" in
+	"${distfiles}"|empty|fetch)	return 0;;
+	esac
+	return 1
+}
+
+chowner_mode=''
+Chowner() {
+	[ -n "${chowner_mode}" ] && return ${chowner_mode}
+	if ${chowner}
+	then	[ -n "${UID}" ] || UID="`id -u`"
+		[ "${UID}" -eq 0 ] || chowner=false
+	fi
+	${chowner}
+	chowner_mode=${?}
+	return ${chowner_mode}
+}
+
+Ownership() {
+	if Chowner
+	then	chown ${2} -- 'portage:portage' "${1}" || \
+			Warning "cannot change ownership of ${1}"
+	else	chgrp ${2} -- 'portage' "${1}" || \
+			Warning "cannot change group of ${1}"
+	fi
+}
+
+MkDir() {
+	test -d "${1}" && return
+	Info "mkdir ${1}"
+	if ( umask 002 && mkdir -- "${1}" )
+	then	Ownership "${1}"
+	else	Warning "cannot mkdir ${1}"
+	fi
+}
+
+RmLink() {
+	for rmln
+	do	test -h "${rmln}" || continue
+		Info "removing ${rmln}"
+		rm -- "${rmln}" || Warning "cannot remove ${rmln}"
+	done
+}
+
+RmDir() {
+	for rmdiri in \
+		"${1}/"* \
+		"${1}/".*
+	do	case "${rmdiri##*/}" in
+		.|..)	continue;;
+		esac
+		return 0
+	done
+	if rmdir -- "${1}" >/dev/null 2>&1
+	then	Info "rmdir ${1}"
+	else	Warning "cannot rmdir ${1}"
+	fi
+}
+
+RmLinkDir() {
+	test -d "${1}" || return 0
+	RmLink "${1}"/*
+	RmDir "${1}"
+}
+
+CreateLink() {
+	Info "creating link: ${3}${2} -> ${1}"
+	if ln -sn -- "${1}" "${2}"
+	then	Ownership "${2}" -h
+	else	Warning "cannot create link ${3}${2}"
+	fi
+}
+
+Mv() {
+	Info "moving: ${1} -> ${2}"
+	mv -- "${1}" "${2}" || Warning "cannot move ${1} -> ${2}"
+}
+
+CreateFiles() {
+	test -f "${1}" || return
+	crshort="${1##*/}"
+	test -r "${crshort}" && return
+	if ! ${all}
+	then	if test -r "${distdir}/${crshort}" || \
+			test -r "${distdir}/${obsdir}/${crshort}"
+		then	return
+		fi
+	fi
+	CreateLink "${1}" "${crshort}" "${2}"
+}
+
+RemoveFiles() {
+	test -f "${1}" || return
+	rmshort="${1##*/}"
+	RmLink "${rmshort}" "${distdir}/${obsdir}/${rmshort}"
+}
+
+Action() {
+	acdir=''
+	acexit='exit 0'
+	${deldist} || [ "${1}" = 'CreateFiles' ] && acexit=:
+	Cd "${maindir}"
+	if ${remove} && [ "${1}" = 'RemoveFiles' ]
+	then	test -d 'empty' && RmDir 'empty'
+	else	MkDir 'empty'
+	fi
+	for acfile in *
+	do	IsInCut "${acfile}" && continue
+		test -r "${acfile}" || continue
+		(
+			Cd "${distdir}"
+			if [ "${1}" = 'RemoveFiles' ]
+			then	RmLinkDir "${save}${acfile}"
+			elif ! ${flatten}
+			then	MkDir "${save}${acfile}"
+				Cd "${save}${acfile}"
+				acdir="${save}${acfile}/"
+			fi
+			${acexit}
+			for acsub in "${maindir}/${acfile}"/*
+			do	if test -d "${acsub}"
+				then	find -L "${acsub}" -print | while read -r fil
+					do	"${1}" "${fil}" "${acdir}"
+					done
+				else	test -r "${acsub}" || continue
+					"${1}" "${acsub}" "${acdir}"
+				fi
+			done
+			:
+		) || exit ${?}
+	done
+	return 0
+}
+
+RmBadLinks() {
+	for rmbadl in * .*
+	do	test -h "${rmbadl}" && ! test -r "${rmbadl}" \
+			&& RmLink "${rmbadl}"
+	done
+}
+
+Cleanup() {
+	Cd "${distdir}"
+	RmBadLinks
+	for clns in "${obsdir}" "${save}"*
+	do	test -d "${clns}" || continue
+		(
+			Cd "${clns}" && RmBadLinks
+		)
+		[ -n "${1}" ] && [ "${clns}" != "${obsdir}" ] && RmDir "${clns}"
+	done
+}
+
+LinkToSave() {
+	Cd "${distdir}"
+	for lnsavi in \
+		"${saveprefix}"*/* \
+		"${saveprefix}"*/.*
+	do	lnsavs="${lnsavi##*/}"
+		test -r "${lnsavs}" || CreateLink "${lnsavi}" "${lnsavs}"
+	done
+}
+
+FlattenObsolete() {
+	Cd "${distdir}"
+	for flobs in "${obsdir}"/* "${obsdir}"/.*
+	do	test -r "${flobs}" || continue
+		test -d "${flobs}" && continue
+		flobssht="${flobs##*/}"
+		test -r "${flobssht}" && continue
+		if ${forceflatten}
+		then	Mv "${flobs}" "${flobssht}"
+		else	CreateLink "${flobs}" "${flobssht}"
+		fi
+	done
+}
+
+RemoveSavelinks() {
+	Cd "${distdir}"
+	for rmobs in \
+		"${obsdir}"/* \
+		"${obsdir}"/.* \
+		"${saveprefix}"*/* \
+		"${saveprefix}"*/.*
+	do	RmLink "${rmobs##*/}"
+	done
+}
+
+Trickyfetch() {
+	Info "Finishing with trickyfetch '' ${distdir} ''"
+	trickyfetch '' "${distdir}" '' >/dev/null
+}
+
+if ${cleanup}
+then	Cleanup
+fi
+if ! ${keep}
+then	Action RemoveFiles
+fi
+if ${deldist} && ! ${keep}
+then	RemoveSavelinks
+fi
+if ${flatten}
+then	LinkToSave
+	FlattenObsolete
+fi
+if ! ${remove}
+then	Action CreateFiles
+fi
+if ${cleanup}
+then	Cleanup dirs
+fi
+if ${tricky}
+then	Trickyfetch
+fi
+:

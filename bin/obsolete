@@ -1,0 +1,50 @@
+#! /usr/bin/env sh
+
+Fatal() {
+	printf '%s\n' "${0##*/}: ${1}" >&2
+	exit ${2:-1}
+}
+
+Warn() {
+	printf '%s\n' "${0##*/}: warning: ${1}" >&2
+}
+
+Info() {
+	printf '# %s\n' "${*}"
+}
+
+Exec() {
+	Info "${*}"
+	"${@}" || Fatal "${*} failed" ${?}
+}
+
+eix_functions=`command -v eix-functions.sh 2>/dev/null` || eix_functions=''
+if [ -n "${eix_functions}" ]
+then	. "${eix_functions}"
+	ReadVar distdir DISTDIR
+else	distdir="`portageq distdir`" || distdir=''
+fi
+case "${distdir}" in
+/*)	test -d "${distdir}" || distdir='';;
+*)	distdir='';;
+esac
+[ -n "${distdir}" ] || Fatal 'cannot determine DISTDIR'
+
+Exec cd "${distdir}"
+if ! test -d ".obsolete"
+then	( umask 002 && Exec mkdir .obsolete ) || exit ${?}
+	[ -n "${UID}" ] || UID="`id -u`"
+	if [ "${UID}" -eq 0 ]
+	then	Exec chown portage:portage .obsolete
+	else	Exec chgrp portage .obsolete
+	fi
+fi
+Info 'mv -- * .obsolete'
+for i in *
+do	if test -r "${i}" && ! test -d "${i}" && ! test -r ".obsolete/${i}"
+	then	mv -- "${i}" .obsolete || Fatal "mv ${i} .obsolete failed"
+	else	Warn "not moving to .obsolete: ${i}"
+	fi
+done
+Info 'emerge -feD --with-bdeps=y @system @world'
+exec emerge -feD --with-bdeps=y @system @world

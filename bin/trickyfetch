@@ -1,0 +1,163 @@
+#! /usr/bin/env sh
+export URI
+export DISTDIR
+export FILE
+URI="${1}"
+DISTDIR="${2}"
+FILE="${3}"
+
+case "${NOCOLOR}" in
+''|[fFnN]*|[oO][fF]*)
+tricky_info() {
+	printf '>>> \033[1;33m%s: %s\033[0m\n' "${0##*/}" "${*}"
+}
+;;
+*)
+tricky_info() {
+	printf '>>> %s: %s\n' "${0##*/}" "${*}"
+}
+;;
+esac
+
+tricky_error() {
+	printf '%s: %s\n' "${0##*/}" "${*}" >&2
+}
+
+if [ -z "${DISTDIR}" ] || ! test -d "${DISTDIR}"
+then	tricky_info "Called with wrong arguments"
+	tricky_error "fatal: second argument \"${DISTDIR}\" is no directory"
+	exit 1
+fi
+
+# First argument must be one of
+#  :     Verbose
+#  false Non-verbose
+# The other arguments are candidates for files/dirs to be moved to ${DISTDIR}.
+# Success if at least one file/dir could be moved.
+
+tricky_mv() {
+	# If tricky_mc is continue, no (further) dir-tricky_contents
+	#  are moved to avoid mixing dirs
+	tricky_mc=''
+	tricky_mverb=${1}
+	shift
+	for tricky_ms
+	do	test -e "${tricky_ms}" || continue
+		tricky_md="${DISTDIR}/${tricky_ms##*/}"
+		if ! test -e "${tricky_md}"
+		then	${tricky_mverb} && \
+				tricky_info "Moving source from ${tricky_ms}"
+			mv -- "${tricky_ms}" "${tricky_md}" && return 0
+			tricky_mc=continue
+			tricky_error "failed moving ${tricky_ms}"
+			continue
+		fi
+		${tricky_mc}
+		test -d "${tricky_md}" || continue
+		test -d "${tricky_ms}" || continue
+		${tricky_mverb} && \
+			tricky_info "Moving dir-content of ${tricky_ms}/*"
+		tricky_mm=:
+		for tricky_mi in "${tricky_ms}"/*
+		do	tricky_mn="${tricky_mi##*/}"
+			case "${tricky_mn}" in
+			.|..)	continue;;
+			esac
+			test -e "${tricky_mi}" || continue
+			if test -e "${tricky_md}/${tricky_mn}"
+			then	tricky_mm=false
+				continue
+			fi
+			mv -- "${tricky_mi}" "${tricky_md}" || tricky_mm=false
+		done
+		if ${tricky_mm} && test -L "${tricky_ms}"
+		then	rm -- "${tricky_ms}" && return
+		else	rmdir -- "${tricky_ms}" && return
+		fi
+		tricky_mc=continue
+		tricky_error "failed moving dir-content of ${tricky_ms}/*"
+	done
+	return 1
+}
+
+# These tasks are alway done, even if no file should need to be fetched:
+
+# A somewhat special treatment is needed for ${DISTDIR}/*-src, because the
+# files in these directories are not fetched by
+# "emerge -feD --with-bdeps y @world @system".
+# Therefore, trickyfetch tacitly moves back these directories from .obsolete
+# (because it was probably moved there by the user by "accident" with the
+# command "mv -i * .obsolete").
+# In this way the treatment of .obsolete differs from .save*:
+# Since .save* is meant for manual user interaction, the user certainly
+# has a reason if he moves some *-src there, so trickyfetch should better
+# not interfere.
+
+for tricky_ai in "${DISTDIR}/.obsolete"/*-src
+do	test -d "${tricky_ai}" && tricky_mv false "${tricky_ai}"
+done
+
+# The files in .restricted are always linked if they don't exist
+
+for tricky_ai in "${DISTDIR}/.restricted"/*
+do	test -e "${tricky_ai}" || continue
+	tricky_an="${tricky_ai##*/}"
+	tricky_mv false "${DISTDIR}/.obsolete/${tricky_an}" \
+		"${DISTDIR}"/.save*/"${tricky_an}" \
+		|| test -e "${DISTDIR}/${tricky_an}" \
+		|| ln -s -- "${tricky_ai}" "${DISTDIR}/${tricky_an}"
+done
+
+# An empty filename is something which we assume is already downloaded
+
+[ -z "${FILE}" ] && exit 0
+
+# Now trickyfetch moves the files if possible
+
+tricky_mv : "${DISTDIR}/.obsolete/${FILE}" "${DISTDIR}"/.save*/"${FILE}" \
+	&& exit 0 # Finish if at least one move was successful
+
+# Now we log, since we really have to fetch something and not only to move:
+
+case "${TRICKYLOG}" in
+/*)
+	if [ "${URI##*/}" = "${FILE}" ]
+	then	printf '%s\n' "${URI}" >>"${TRICKYLOG}"
+	else	printf '%s -> %s\n' "${URI}" "${FILE}" >>"${TRICKYLOG}"
+	fi
+;;
+esac
+
+# If possible, try to fetch the file using LOCALFETCHCOMMAND
+
+if [ -n "${LOCALFETCHCOMMAND}" ]
+then	tricky_info "Trying \${LOCALFETCHCOMMAND} for ${URI}"
+	eval "${LOCALFETCHCOMMAND}"
+	[ ${?} -eq 0 ] && test -e "${DISTDIR}/${FILE}" && exit 0
+fi
+
+# If all customizable attempts failed, we attempt getdelta.sh.
+
+if [ -n "${NODELTA}" ]
+then	tricky_info "Not using getdelta because NODELTA is set."
+elif ! test -x /usr/bin/getdelta.sh
+then	tricky_info "Not using app-portage/getdelta since it is not installed."
+elif test -e "${DISTDIR}/.nodelta"
+then	tricky_info "Not using getdelta since \${DISTDIR}/.nodelta exists."
+else	tricky_info "Calling getdelta to fetch ${FILE}"
+	exec /usr/bin/getdelta.sh "${URI}" "${FILE}"
+	tricky_error "could not execute getdelta.sh for ${FILE}" >&2
+	exit 1
+fi
+
+# The default wget is actually only the final fallback:
+
+tricky_wget="wget -t 1 -T 15 --passive-ftp --no-glob"
+if [ "${URI##*/}" = "${FILE}" ]
+then	tricky_info "Calling wget to fetch ${FILE}"
+	exec ${tricky_wget} -P "${DISTDIR}" -- "${URI}"
+else	tricky_info "Calling wget -O ${FILE}"
+	exec ${tricky_wget} -O "${DISTDIR}/${FILE}" -- "${URI}"
+fi
+tricky_error "could not execute wget for ${FILE}" >&2
+exit 1
