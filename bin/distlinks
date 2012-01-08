@@ -14,7 +14,7 @@ Warning() {
 }
 
 Echo() {
-	printf '%s' "${*}"
+	printf '%s\n' "${*}"
 }
 
 eix_functions=`command -v eix-functions.sh 2>/dev/null` || eix_functions=''

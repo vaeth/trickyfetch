@@ -128,15 +128,15 @@ case "${TRICKYLOG}" in
 ;;
 esac
 
-# If possible, try to fetch the file using LOCALFETCHCOMMAND
+# If LOCALFETCHCOMMAND exists, use it:
 
 if [ -n "${LOCALFETCHCOMMAND}" ]
-then	tricky_info "Trying \${LOCALFETCHCOMMAND} for ${URI}"
+then	tricky_info "Using \${LOCALFETCHCOMMAND} for ${URI}"
 	eval "${LOCALFETCHCOMMAND}"
-	[ ${?} -eq 0 ] && test -e "${DISTDIR}/${FILE}" && exit 0
+	exit
 fi
 
-# If all customizable attempts failed, we attempt getdelta.sh.
+# If getdelta.sh is possible, use it:
 
 if [ -n "${NODELTA}" ]
 then	tricky_info "Not using getdelta because NODELTA is set."

@@ -24,8 +24,9 @@ A solution to all these problems is to use a wrapper over FETCHCOMMAND
 to log the files which are actually fetched.
 
 The script trickyfetch of this project is such a wrapper:
-To install it, simply copy trickyfetch into a directory from $PATH
-and then define in your /etc/portage/make.conf (or /etc/make.conf):
+To install it, simply copy bin/trickyfetch (with executable permissions)
+into a directory from $PATH and then define in your
+/etc/portage/make.conf (or /etc/make.conf):
 
 FETCHCOMMAND="trickyfetch \"\${URI}\" \"\${DISTDIR}\" \"\${FILE}\""
 
@@ -47,8 +48,9 @@ the following steps:
    If you want to be more careful (and use >=portage-2.2), use instead better
 	emerge -feD --with-bdeps=y @system @world
 
-(There is also a tiny "obsolete" script in this project which does
-exactly the two steps above [with the >=portage-2.2 variant].)
+(There is also a tiny bin/obsolete" script in this project which does
+exactly the two steps above [with the >=portage-2.2 variant]. You might also
+want to copy this script to your path if you use it often.)
 
 That's it: Afterwards, your $DISTDIR directory will contain all required files
 and the $DISTDIR/.obsolete subdirectory contains the obsolete files.
@@ -58,26 +60,33 @@ $DISTDIR/.obsolete subdirectory into $DISTDIR.  Of course, files which cannot
 be found in that subdirectory will be fetched from the net, as usual.
 
 Optionally, you might want to set the environment variable
-	LOCALFETCHCOMMAND="exit 1"
+	LOCALFETCHCOMMAND="false"
 in step 2 (or when running the obsolete script):
 This way, there is never any access to the net, even if files are missing
-or their size/checksum in the Manifest is wrong.
+or their size/checksum in the Manifest is wrong. (Of course, if you do this
+emerge will report corresponding errors and might rename corresponding
+files due to checksum errors.)
 
 The trickyfetch script also has a lot of additional features:
 
 (a) It supports app-portage/getdelta and can temporarily switch it off.
 (b) It supports logging for the files actually fetched from the net.
-(c) It helps you to keep certain files permanently and "organize" your DISTDIR.
-    This is also support by the distlinks script provided by this project.
+(c) It supports LOCALFETCHCOMMAND to define your own way of fetching data.
+(d) It helps you to keep certain files permanently and "organize" your DISTDIR.
+    This is also support by the bin/distlinks script provided by this project.
 
 These points must be explained in more detail:
 
-(a) Support of app-portage/getdelta:
-If you have installed app-portage/getdelta (note that current versions of that
-package in portage are broken,see http://bugs.gentoo.org/show_bug.cgi?id=239439
-I recommend the one of the mv overlay which are working),
-the trickyfetch script will use it automatically, i.e. in contrast to the
-description of app-portage/getdelta you should not modify anything.
+
+(a) Support for app-portage/getdelta:
+
+Note that current versions of app-portage/getdelta are broken:
+	http://bugs.gentoo.org/show_bug.cgi?id=239439
+I recommend the one of the mv overlay which is working.
+
+If you have installed app-portage/getdelta, the trickyfetch script
+will use it automatically, i.e. in contrast to the description of
+app-portage/getdelta you need not modify anything if you use trickyfetch.
 If you do not want to use getdelta, either set the environment variable
 NODELTA to a nonempty value (either locally or in your make.conf), or create
 the file $DISTDIR/.nodelta
@@ -85,12 +94,11 @@ Note that creating/remove that file has the advantage that you can change
 "on the fly" (during portage is fetch) whether getdelta should be used
 for further packages or not.
 
-If you set LOCALFETCHCOMMAND, this is used before getdelta is attempted.
-In particular, setting the environment variable
-	LOCALFETCHCOMMAND="exit 1"
-makes sure that trickyfetch will never access the net.
+If you do not have getdelta installed, a default wget command is used.
+
 
 (b) Support for logging:
+
 If you set the environment-variable TRICKYLOG to an absolute path
 (either locally or in your make.conf) then trickyfetch will log all
 URLs which are actually fetched from the net into the file $TRICKYLOG.
@@ -99,7 +107,33 @@ directory (e.g. /tmp/trickylog.log would be a very bad choice).
 If you want to use a temporary directory, I recommend to use
 	TRICKYLOG=/var/tmp/portage/trickyfetch.log
 
-(c) It helps you to keep certain files:
+
+(c) LOCALFETCHCOMMAND support for your own scripts:
+
+If you define LOCALFETCHCOMMAND, this will be called after logging,
+but instead of any net access (i.e. getdelta.sh or wget will not be called).
+LOCALFETCHCOMMAND takes the role of portage's original FETCHCOMMAND
+(and must be set completely analogously if you want to use it).
+
+It is explicitly admissible that LOCALFETCHCOMMAND points to a script
+which in turn calls trickyfetch. (To avoid recursion or double logging,
+this script should then obviously clear or unset the environment variables
+LOCALFETCHCOMMAND and TRICKYLOG.)
+
+Note that you can make LOCALFETCHCOMMAND point to your own script in which
+you can in turn call trickyfetch - if you define LOCALFETCHCOMMAND=''
+(or unset it) this will not cause a recursion, but causes trickyfetch
+to proceed with getdelta.
+
+As mentioned earlier, in the context of e.g. the obsolete script, you might
+want to define temporarily
+	LOCALFETCHCOMMAND=false
+to avoid any internet access when that script is run, but in this case
+you might have to manually care later about renamed files by portage.
+
+
+(d) Keep certain files permanently and "organize" your DISTDIR:
+
 Directories of the form  $DISTDIR/.save* (you can have several of those)
 are treated similarly to $DISTDIR/.obsolete by trickyfetch, but with a
 lower priority. In other words, trickyfetch works as follows:
@@ -121,17 +155,17 @@ Thus, you can e.g.  move fetch-restricted files in this subdirectory, and
 these files need not be fetched by trickyfetch.
 
 A different kind of permanent solution using the $DISTDIR/.save* directories
-can be obtained with the "distlinks" script.
+can be obtained with the bin/distlinks" script.
 
-
-The usage of this "distlinks" script is somewhat more complex and explained
+The usage of this distlinks script is somewhat more complex and explained
 in the following. This approach is reasonable, e.g. if you have a
 "main machine" from which you want to copy only the relevant portions
 of DISTDIR to other machines (e.g. with limited disk space and no
 internet connection).
 
-To use the distlinks script, you must move $DISTDIR one directory level down,
-e.g. if you originally had
+The usage of the bin/distlinks script requires some preparation
+(besides copying it into your path, of course):
+You must move $DISTDIR one directory level down, e.g. if you originally had
 	DISTDIR=/usr/portage/distdir
 you should now create a subdirectory like
 	DISTDIR=/usr/portage/distdir/portage-distdir
@@ -139,11 +173,11 @@ and move the original content of /usr/portage/distdir into that subdirectory.
 Do not forget to set the new correct DESTDIR in your make.conf!
 
 The idea is that within the original /usr/portage/distdir (in the following
-called $PARENT) you can now keep directories like
+called $PARENT) you can add further directories like
 	$PARENT/overlays
 	$PARENT/laptop
 	$PARENT/local-projects
-in which you can move files from $DISTDIR which should never be deleted.
+into which you can move files from $DISTDIR which should never be deleted.
 The purpose of the "distlinks" script is to organize corresponding
 $DISTDIR/.save.* subdirectories of symbolic links.
 For instance, if you have the subdirectories of the above example, the call
@@ -153,7 +187,7 @@ will create the subdirectories
 	$DISTDIR/.save.laptop
 	$DISTDIR/.save.local-projects
 and fill them with symbolic links to the corresponding files in $PARENT/...
-(and by default it will remove existing such symbolic links from
+(and by default it will cleanup existing such symbolic links from
 $DISTDIR or $DISTDIR/.obsolete).
 
 This way, trickyfetch will use the files from $PARENT (by moving them out

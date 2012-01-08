@@ -1,6 +1,6 @@
 #compdef distlinks
 _arguments -s -S -A '-*' : \
-'(* -)'{'-h','-H','-\\?'}'[help]' \
+'(1 -)'{'-h','-H','-\\?'}'[help]' \
 '(-f)-1[flatten structure: symlinks for .obsolete/.save*]' \
 '(-1)-f[force flatten: symlinks for .save*, move from .obsolete]' \
 '(-R)-r[(default) remove matching/strange symlinks if possible]' \
