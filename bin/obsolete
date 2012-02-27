@@ -22,9 +22,9 @@ eix_functions=`command -v eix-functions.sh 2>/dev/null` || eix_functions=''
 if [ -n "${eix_functions}" ]
 then	. "${eix_functions}"
 	ReadVar distdir DISTDIR
-else	distdir="`portageq distdir`" || distdir=''
+else	distdir=`portageq distdir` || distdir=''
 fi
-case "${distdir}" in
+case ${distdir} in
 /*)	test -d "${distdir}" || distdir='';;
 *)	distdir='';;
 esac
@@ -33,10 +33,10 @@ esac
 Exec cd "${distdir}"
 if ! test -d ".obsolete"
 then	( umask 002 && Exec mkdir .obsolete ) || exit ${?}
-	[ -n "${UID}" ] || UID="`id -u`"
+	[ -n "${UID}" ] || UID=`id -u`
 	if [ "${UID}" -eq 0 ]
-	then	Exec chown portage:portage .obsolete
-	else	Exec chgrp portage .obsolete
+	then	Exec chown 'portage:portage' '.obsolete'
+	else	Exec chgrp 'portage' '.obsolete'
 	fi
 fi
 Info 'mv -- * .obsolete'

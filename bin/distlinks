@@ -1,7 +1,15 @@
 #! /usr/bin/env sh
 
+Echo() {
+	printf '%s\n' "${*}"
+}
+
 Message() {
-	printf '%s\n' "${0##*/}: ${*}" >&2
+	Echo "${0##*/}: ${*}" >&2
+}
+
+Warning() {
+	Message "warning: ${*}"
 }
 
 Fatal() {
@@ -9,36 +17,28 @@ Fatal() {
 	exit 1
 }
 
-Warning() {
-	Message "warning: ${*}"
-}
-
-Echo() {
-	printf '%s\n' "${*}"
-}
-
 eix_functions=`command -v eix-functions.sh 2>/dev/null` || eix_functions=''
 if [ -n "${eix_functions}" ]
 then	. "${eix_functions}"
 	ReadVar distdir DISTDIR
-else	distdir="`portageq distdir`" || distdir=''
+else	distdir=`portageq distdir` || distdir=''
 fi
-case "${distdir}" in
+case ${distdir} in
 /*)	test -d "${distdir}" || distdir='';;
 *)	distdir='';;
 esac
 [ -n "${distdir}" ] || Fatal 'cannot determine DISTDIR'
 
 
-obsdir=".obsolete"
-saveprefix=".save"
+obsdir='.obsolete'
+saveprefix='.save'
 save="${saveprefix}."
 
-maindir="${distdir%/*}"
-distfiles="${distdir##*/}"
+maindir=${distdir%/*}
+distfiles=${distdir##*/}
 
 Usage() {
-	printf '%s\n' "Usage: ${0##*/} [options] create|delete|help
+	Echo "Usage: ${0##*/} [options] create|delete|help
 For each directory in ${maindir}/* (except: ${distfiles} empty fetch)
 create/delete corresponding dirs ${distdir}/${save}*,
 creating/removing corresponding symbolic links in these directories
@@ -94,10 +94,12 @@ forceflatten=false
 chowner=:
 tricky=:
 OPTIND=1
-while getopts '1farRcCkvOT?hH' opt
-do	case "${opt}" in
-	1)	flatten=:; forceflatten=false;;
-	f)	flatten=:; forceflatten=:;;
+while getopts '1farRcCkvOThH?' opt
+do	case ${opt} in
+	1)	flatten=:
+		forceflatten=false;;
+	f)	flatten=:
+		forceflatten=:;;
 	a)	all=:;;
 	r)	deldist=:;;
 	r)	deldist=false;;
@@ -112,7 +114,7 @@ do	case "${opt}" in
 done
 shift $(( ${OPTIND} - 1 ))
 
-case "${1}" in
+case ${1} in
 [cC]*)	remove=false;;
 [dD]*)	remove=:;;
 [hH]*)	Usage 0;;
@@ -120,23 +122,20 @@ case "${1}" in
 esac
 
 if ${quiet}
-then
-Info() {
+then	Info() {
 	:
 }
-else
-Info() {
+else	Info() {
 	Echo "${*}"
 }
 fi
-
 
 Cd() {
 	cd -- "${1}" >/dev/null 2>&1 || Fatal "cannot cd to ${1}"
 }
 
 IsInCut() {
-	case "${1}" in
+	case ${1} in
 	"${distfiles}"|empty|fetch)	return 0;;
 	esac
 	return 1
@@ -146,7 +145,7 @@ chowner_mode=''
 Chowner() {
 	[ -n "${chowner_mode}" ] && return ${chowner_mode}
 	if ${chowner}
-	then	[ -n "${UID}" ] || UID="`id -u`"
+	then	[ -n "${UID}" ] || UID=`id -u`
 		[ "${UID}" -eq 0 ] || chowner=false
 	fi
 	${chowner}
@@ -184,7 +183,7 @@ RmDir() {
 	for rmdiri in \
 		"${1}/"* \
 		"${1}/".*
-	do	case "${rmdiri##*/}" in
+	do	case ${rmdiri##*/} in
 		.|..)	continue;;
 		esac
 		return 0
@@ -216,7 +215,7 @@ Mv() {
 
 CreateFiles() {
 	test -f "${1}" || return
-	crshort="${1##*/}"
+	crshort=${1##*/}
 	test -r "${crshort}" && return
 	if ! ${all}
 	then	if test -r "${distdir}/${crshort}" || \
@@ -229,7 +228,7 @@ CreateFiles() {
 
 RemoveFiles() {
 	test -f "${1}" || return
-	rmshort="${1##*/}"
+	rmshort=${1##*/}
 	RmLink "${rmshort}" "${distdir}/${obsdir}/${rmshort}"
 }
 
@@ -294,7 +293,7 @@ LinkToSave() {
 	for lnsavi in \
 		"${saveprefix}"*/* \
 		"${saveprefix}"*/.*
-	do	lnsavs="${lnsavi##*/}"
+	do	lnsavs=${lnsavi##*/}
 		test -r "${lnsavs}" || CreateLink "${lnsavi}" "${lnsavs}"
 	done
 }
@@ -304,7 +303,7 @@ FlattenObsolete() {
 	for flobs in "${obsdir}"/* "${obsdir}"/.*
 	do	test -r "${flobs}" || continue
 		test -d "${flobs}" && continue
-		flobssht="${flobs##*/}"
+		flobssht=${flobs##*/}
 		test -r "${flobssht}" && continue
 		if ${forceflatten}
 		then	Mv "${flobs}" "${flobssht}"
