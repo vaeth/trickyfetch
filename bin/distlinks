@@ -38,14 +38,14 @@ maindir=${distdir%/*}
 distfiles=${distdir##*/}
 
 Usage() {
-	Echo "Usage: ${0##*/} [options] create|delete|help
+	Echo "Usage: ${0##*/} [options] [create|delete|help]
 For each directory in ${maindir}/* (except: ${distfiles} empty fetch)
-create/delete corresponding dirs ${distdir}/${save}*,
-creating/removing corresponding symbolic links in these directories
-(all permissions and ownerships are set appropriately, and the directories
-are flattened).
-If reasonable, the empty directory ${maindir}/empty
-is created/removed.
+create (delete) corresponding dirs ${distdir}/${save}*,
+creating (removing) corresponding symbolic links in these directories;
+all permissions and ownerships are set appropriately, and the directories
+are flattened. If reasonable, the empty directory
+${maindir}/empty
+is created (removed).
 
 Also a cleanup is made: Links in ${distdir}
 or in its ${obsdir}/${save}* subdirectories are deleted if they point to
@@ -114,7 +114,7 @@ do	case ${opt} in
 done
 shift $(( ${OPTIND} - 1 ))
 
-case ${1} in
+case ${1:-create} in
 [cC]*)	remove=false;;
 [dD]*)	remove=:;;
 [hH]*)	Usage 0;;
@@ -186,7 +186,7 @@ RmDir() {
 	do	case ${rmdiri##*/} in
 		.|..)	continue;;
 		esac
-		return 0
+		test -e "${rmdiri}" && return
 	done
 	if rmdir -- "${1}" >/dev/null 2>&1
 	then	Info "rmdir ${1}"

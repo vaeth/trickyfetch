@@ -181,7 +181,7 @@ into which you can move files from $DISTDIR which should never be deleted.
 The purpose of the "distlinks" script is to organize corresponding
 $DISTDIR/.save.* subdirectories of symbolic links.
 For instance, if you have the subdirectories of the above example, the call
-	distlinks create
+	distlinks (which is the same as distlinks create)
 will create the subdirectories
 	$DISTDIR/.save.overlays
 	$DISTDIR/.save.laptop
@@ -232,7 +232,7 @@ ESVN_STORE_DIR="${ESCM_STORE_DIR}"
 The "distlinks" and "obsolete" script runs slightly faster if eix is installed.
 
 To find out how to use "distlinks" exactly, use
-	distlinks help
+	distlinks -h
 
 To obtain zsh-completion support for the "distlinks" script,
 you can copy zsh/_distlinks to a directory of zsh's $fpath

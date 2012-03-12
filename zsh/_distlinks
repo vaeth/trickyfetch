@@ -3,12 +3,13 @@ _arguments -s -S -A '-*' : \
 '(1 -)'{'-h','-H','-\\?'}'[help]' \
 '(-f)-1[flatten structure: symlinks for .obsolete/.save*]' \
 '(-1)-f[force flatten: symlinks for .save*, move from .obsolete]' \
-'(-R)-r[(default) remove matching/strange symlinks if possible]' \
+'(-R)-r[(is default) remove matching/strange symlinks if possible]' \
 '(-r)-R[do not remove matching/strange symlinks]' \
+'(-C)-c[(is default) cleanup dead links and empty .save* dirs]' \
+'(-c)-C[no cleanup of dead links or empty .save* dirs]' \
 '-k[keep existing symlinks]' \
-'-C[no cleanup (keep nonexisting links and empty .save* dirs)]' \
 '-a[create all links, even if they exist in distfiles or .obsolete)]' \
 '-T[omit executing the trickyfetch script]' \
 '-v[verbose]' \
 '-O[do not make portage the owner of the files]' \
-'1:command:(create delete help)'
+'1::command:(create delete help)'
