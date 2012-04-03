@@ -43,7 +43,8 @@ Info 'mv -- * .obsolete'
 for i in *
 do	if test -r "${i}" && ! test -d "${i}" && ! test -r ".obsolete/${i}"
 	then	mv -- "${i}" .obsolete || Fatal "mv ${i} .obsolete failed"
-	else	Warn "not moving to .obsolete: ${i}"
+	elif [ "${i}" -ne '*' ]
+	then	Warn "not moving to .obsolete: ${i}"
 	fi
 done
 Info 'emerge -feD --with-bdeps=y @system @world'
