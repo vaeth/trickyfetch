@@ -17,17 +17,17 @@ Fatal() {
 	exit 1
 }
 
-eix_functions=`command -v eix-functions.sh 2>/dev/null` || eix_functions=''
-if [ -n "${eix_functions}" ]
-then	. "${eix_functions}"
+if command -v eix-functions.sh >/dev/null 2>&1
+then	. eix-functions.sh
 	ReadVar distdir DISTDIR
-else	distdir=`portageq distdir` || distdir=''
+else	distdir=`portageq distdir 2>/dev/null` \
+	|| Fatal 'portageq distdir failed'
 fi
+# Add a paranoid sanity check:
 case ${distdir} in
-/*)	test -d "${distdir}" || distdir='';;
-*)	distdir='';;
-esac
-[ -n "${distdir}" ] || Fatal 'cannot determine DISTDIR'
+/*/*)	test -d "${distdir}";;
+*)	false;;
+esac || Fatal 'cannot determine DISTDIR appropriate for this script'
 
 
 obsdir='.obsolete'
@@ -38,9 +38,9 @@ maindir=${distdir%/*}
 distfiles=${distdir##*/}
 
 Usage() {
-	Echo "Usage: ${0##*/} [options] [create|delete|help]
+	Echo "Usage: ${0##*/} [options] [create|remove|help]
 For each directory in ${maindir}/* (except: ${distfiles} empty fetch)
-create (delete) corresponding dirs ${distdir}/${save}*,
+create (remove) corresponding dirs ${distdir}/${save}*,
 creating (removing) corresponding symbolic links in these directories;
 all permissions and ownerships are set appropriately, and the directories
 are flattened. If reasonable, the empty directory
@@ -68,7 +68,7 @@ The following options are available:
    into subdirectories of $distdir).
 -f Force flattening: As -1, but flatten ${obsdir} not by creating links
    but by moving all its content into ${distdir}
--r This option is the default: Delete always corresponding links in
+-r This option is the default: Remove always corresponding links in
    ${distdir} and in ${distdir}/${obsdir}
    Also remove links in ${distdir}
    which point to files in ${obsdir} or ${saveprefix}*
@@ -102,7 +102,7 @@ do	case ${opt} in
 		forceflatten=:;;
 	a)	all=:;;
 	r)	deldist=:;;
-	r)	deldist=false;;
+	R)	deldist=false;;
 	c)	cleanup=:;;
 	C)	cleanup=false;;
 	k)	keep=:;;
@@ -115,10 +115,14 @@ done
 shift $(( ${OPTIND} - 1 ))
 
 case ${1:-create} in
-[cC]*)	remove=false;;
-[dD]*)	remove=:;;
-[hH]*)	Usage 0;;
-*)	Usage;;
+[cC]*)
+	remove=false;;
+[dDrR]*)
+	remove=:;;
+[hH]*)
+	Usage 0;;
+*)
+	Usage;;
 esac
 
 if ${quiet}

@@ -12,4 +12,4 @@ _arguments -s -S -A '-*' : \
 '-T[omit executing the trickyfetch script]' \
 '-v[verbose]' \
 '-O[do not make portage the owner of the files]' \
-'1::command:(create delete help)'
+'1::command:(create remove help)'

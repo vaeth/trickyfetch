@@ -6,76 +6,82 @@ URI=${1}
 DISTDIR=${2}
 FILE=${3}
 
-case ${NOCOLOR} in
-''|[fFnN]*|[oO][fF]*)
-tricky_info() {
+Echo() {
+	printf '%s\n' "${*}"
+}
+
+case ${NOCOLOR:-false} in
+[fFnN0]*|[oO][fF]*)
+Info() {
 	printf '>>> \033[1;33m%s: %s\033[0m\n' "${0##*/}" "${*}"
 }
 ;;
 *)
-tricky_info() {
-	printf '>>> %s: %s\n' "${0##*/}" "${*}"
+Info() {
+	Echo ">>> ${0##*/}: ${*}"
 }
 ;;
 esac
 
-tricky_error() {
-	printf '%s: %s\n' "${0##*/}" "${*}" >&2
+Error() {
+	Echo "${0##*/}: ${*}" >&2
+}
+
+Fatal() {
+	Error "fatal: ${*}"
+	exit 1
 }
 
 if [ -z "${DISTDIR}" ] || ! test -d "${DISTDIR}"
-then	tricky_info "Called with wrong arguments"
-	tricky_error "fatal: second argument \"${DISTDIR}\" is no directory"
-	exit 1
+then	Info "Called with wrong arguments"
+	Fatal "second argument \"${DISTDIR}\" is not a directory"
 fi
 
 # First argument must be one of
-#  :     Verbose
-#  false Non-verbose
+#  Info  Verbose
+#  :     Non-verbose
 # The other arguments are candidates for files/dirs to be moved to ${DISTDIR}.
 # Success if at least one file/dir could be moved.
 
-tricky_mv() {
-	# If tricky_mc is continue, no (further) dir-tricky_contents
+Mv() {
+	# If mv_cont is continue, no (further) dir-tricky_contents
 	#  are moved to avoid mixing dirs
-	tricky_mc=''
-	tricky_mverb=${1}
+	mv_cont=''
+	mv_info=${1}
 	shift
-	for tricky_ms
-	do	test -e "${tricky_ms}" || continue
-		tricky_md="${DISTDIR}/${tricky_ms##*/}"
-		if ! test -e "${tricky_md}"
-		then	${tricky_mverb} && \
-				tricky_info "Moving source from ${tricky_ms}"
-			mv -- "${tricky_ms}" "${tricky_md}" && return 0
-			tricky_mc=continue
-			tricky_error "failed moving ${tricky_ms}"
+	for mv_i
+	do	test -e "${mv_i}" || continue
+		mv_dest="${DISTDIR}/${mv_i##*/}"
+		if ! test -e "${mv_dest}"
+		then	${mv_info} "Moving source from ${mv_i}"
+			mv -- "${mv_i}" "${mv_dest}" && return 0
+			mv_cont=continue
+			Error "failed moving ${mv_i}"
 			continue
 		fi
-		${tricky_mc}
-		test -d "${tricky_md}" || continue
-		test -d "${tricky_ms}" || continue
-		${tricky_mverb} && \
-			tricky_info "Moving dir-content of ${tricky_ms}/*"
-		tricky_mm=:
-		for tricky_mi in "${tricky_ms}"/*
-		do	tricky_mn="${tricky_mi##*/}"
-			case ${tricky_mn} in
+		${mv_cont}
+		test -d "${mv_dest}" || continue
+		test -d "${mv_i}" || continue
+		${mv_info} "Moving dir-content of ${mv_i}/*"
+		mv_match=:
+		for mv_j in "${mv_i}"/*
+		do	mv_name=${mv_j##*/}
+			case ${mv_name} in
 			.|..)	continue;;
 			esac
-			test -e "${tricky_mi}" || continue
-			if test -e "${tricky_md}/${tricky_mn}"
-			then	tricky_mm=false
+			test -e "${mv_j}" || continue
+			if test -e "${mv_dest}/${mv_name}"
+			then	mv_match=false
 				continue
 			fi
-			mv -- "${tricky_mi}" "${tricky_md}" || tricky_mm=false
+			mv -- "${mv_j}" "${mv_dest}" || mv_match=false
 		done
-		if ${tricky_mm} && test -L "${tricky_ms}"
-		then	rm -- "${tricky_ms}" && return
-		else	rmdir -- "${tricky_ms}" && return
+		if ${mv_match} && test -L "${mv_i}"
+		then	rm -- "${mv_i}" && return
+		else	rmdir -- "${mv_i}" && return
 		fi
-		tricky_mc=continue
-		tricky_error "failed moving dir-content of ${tricky_ms}/*"
+		mv_cont=continue
+		Error "failed moving dir-content of ${mv_i}/*"
 	done
 	return 1
 }
@@ -93,37 +99,36 @@ tricky_mv() {
 # has a reason if he moves some *-src there, so trickyfetch should better
 # not interfere.
 
-for tricky_ai in "${DISTDIR}/.obsolete"/*-src
-do	test -d "${tricky_ai}" && tricky_mv false "${tricky_ai}"
+for i in "${DISTDIR}/.obsolete"/*-src
+do	test -d "${i}" && Mv : "${i}"
 done
 
 # The files in .restricted are always linked if they don't exist
 
-for tricky_ai in "${DISTDIR}/.restricted"/*
-do	test -e "${tricky_ai}" || continue
-	tricky_an=${tricky_ai##*/}
-	tricky_mv false "${DISTDIR}/.obsolete/${tricky_an}" \
-		"${DISTDIR}"/.save*/"${tricky_an}" \
-		|| test -e "${DISTDIR}/${tricky_an}" \
-		|| ln -s -- "${tricky_ai}" "${DISTDIR}/${tricky_an}"
+for i in "${DISTDIR}/.restricted"/*
+do	test -e "${i}" || continue
+	name=${i##*/}
+	Mv : "${DISTDIR}/.obsolete/${name}" "${DISTDIR}"/.save*/"${name}" \
+		|| test -e "${DISTDIR}/${name}" \
+		|| ln -s -- "${i}" "${DISTDIR}/${name}"
 done
 
 # An empty filename is something which we assume is already downloaded
 
-[ -z "${FILE}" ] && exit 0
+[ -z "${FILE}" ] && exit
 
 # Now trickyfetch moves the files if possible
+# Finish if at least one move was successful
 
-tricky_mv : "${DISTDIR}/.obsolete/${FILE}" "${DISTDIR}"/.save*/"${FILE}" \
-	&& exit 0 # Finish if at least one move was successful
+Mv Info "${DISTDIR}/.obsolete/${FILE}" "${DISTDIR}"/.save*/"${FILE}" && exit
 
 # Now we log, since we really have to fetch something and not only to move:
 
 case ${TRICKYLOG} in
 /*)
 	if [ "${URI##*/}" = "${FILE}" ]
-	then	printf '%s\n' "${URI}" >>"${TRICKYLOG}"
-	else	printf '%s -> %s\n' "${URI}" "${FILE}" >>"${TRICKYLOG}"
+	then	Echo "${URI}" >>"${TRICKYLOG}"
+	else	Echo "${URI} -> ${FILE}" >>"${TRICKYLOG}"
 	fi
 ;;
 esac
@@ -131,7 +136,7 @@ esac
 # If LOCALFETCHCOMMAND exists, use it:
 
 if [ -n "${LOCALFETCHCOMMAND}" ]
-then	tricky_info "Using \${LOCALFETCHCOMMAND} for ${URI}"
+then	Info "Using \${LOCALFETCHCOMMAND} for ${URI}"
 	eval "${LOCALFETCHCOMMAND}"
 	exit
 fi
@@ -139,25 +144,23 @@ fi
 # If getdelta.sh is possible, use it:
 
 if [ -n "${NODELTA}" ]
-then	tricky_info "Not using getdelta because NODELTA is set."
+then	Info "Not using getdelta because NODELTA is set."
 elif ! test -x /usr/bin/getdelta.sh
-then	tricky_info "Not using app-portage/getdelta since it is not installed."
+then	Info "Not using app-portage/getdelta since it is not installed."
 elif test -e "${DISTDIR}/.nodelta"
-then	tricky_info "Not using getdelta since \${DISTDIR}/.nodelta exists."
-else	tricky_info "Calling getdelta to fetch ${FILE}"
+then	Info "Not using getdelta since \${DISTDIR}/.nodelta exists."
+else	Info "Calling getdelta to fetch ${FILE}"
 	exec /usr/bin/getdelta.sh "${URI}" "${FILE}"
-	tricky_error "could not execute getdelta.sh for ${FILE}" >&2
-	exit 1
+	Fatal "could not execute getdelta.sh for ${FILE}"
 fi
 
 # The default wget is actually only the final fallback:
 
-tricky_wget='wget -t 1 -T 15 --passive-ftp --no-glob'
+wget='wget -t 1 -T 15 --passive-ftp --no-glob'
 if [ "${URI##*/}" = "${FILE}" ]
-then	tricky_info "Calling wget to fetch ${FILE}"
-	exec ${tricky_wget} -P "${DISTDIR}" -- "${URI}"
-else	tricky_info "Calling wget -O ${FILE}"
-	exec ${tricky_wget} -O "${DISTDIR}/${FILE}" -- "${URI}"
+then	Info "Calling wget to fetch ${FILE}"
+	exec ${wget} -P "${DISTDIR}" -- "${URI}"
+else	Info "Calling wget -O ${FILE}"
+	exec ${wget} -O "${DISTDIR}/${FILE}" -- "${URI}"
 fi
-tricky_error "could not execute wget for ${FILE}" >&2
-exit 1
+Fatal "could not execute wget for ${FILE}"
