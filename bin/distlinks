@@ -145,7 +145,7 @@ IsInCut() {
 	return 1
 }
 
-chowner_mode=''
+chowner_mode=
 Chowner() {
 	[ -n "${chowner_mode}" ] && return ${chowner_mode}
 	if ${chowner}
@@ -237,7 +237,7 @@ RemoveFiles() {
 }
 
 Action() {
-	acdir=''
+	acdir=
 	acexit='exit 0'
 	${deldist} || [ "${1}" = 'CreateFiles' ] && acexit=:
 	Cd "${maindir}"

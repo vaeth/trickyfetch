@@ -46,7 +46,7 @@ fi
 Mv() {
 	# If mv_cont is continue, no (further) dir-tricky_contents
 	#  are moved to avoid mixing dirs
-	mv_cont=''
+	mv_cont=
 	mv_info=${1}
 	shift
 	for mv_i
