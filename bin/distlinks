@@ -29,7 +29,6 @@ case ${distdir} in
 *)	false;;
 esac || Fatal 'cannot determine DISTDIR appropriate for this script'
 
-
 obsdir='.obsolete'
 saveprefix='.save'
 save="${saveprefix}."
@@ -134,8 +133,23 @@ else	Info() {
 }
 fi
 
+which=`command -v which` || which=
+MakeExternal() {
+	[ "${which}" = 'which' ] && eval ${1}=\`which ${2}\` \
+		|| eval ${1}=\`command -v ${2}\` || eval ${1}=
+	eval ": \${${1}:=${2}}"
+}
+
+OptExternal() {
+	eval "[ -n \"\${${1}}\" ]" || MakeExternal ${1} ${2-${1}}
+}
+
+
 Cd() {
-	cd -- "${1}" >/dev/null 2>&1 || Fatal "cannot cd to ${1}"
+	case ${1} in
+	/*)	cd "${1}" >/dev/null 2>&1 || Fatal "cannot cd to ${1}";;
+	*)	cd "./${1#./}" >/dev/null 2>&1 || Fatal "cannot cd to ${PWD}/${1#./}"
+	esac
 }
 
 IsInCut() {
@@ -169,7 +183,7 @@ Ownership() {
 MkDir() {
 	test -d "${1}" && return
 	Info "mkdir ${1}"
-	if ( umask 002 && mkdir -- "${1}" )
+	if mkdir -m 2775 -- "${1}"
 	then	Ownership "${1}"
 	else	Warning "cannot mkdir ${1}"
 	fi
@@ -236,6 +250,7 @@ RemoveFiles() {
 	RmLink "${rmshort}" "${distdir}/${obsdir}/${rmshort}"
 }
 
+find=
 Action() {
 	acdir=
 	acexit='exit 0'
@@ -260,7 +275,8 @@ Action() {
 			${acexit}
 			for acsub in "${maindir}/${acfile}"/*
 			do	if test -d "${acsub}"
-				then	find -L "${acsub}" -print | while read -r fil
+				then	OptExternal find
+					"${find}" -L "${acsub}" -print | while read -r fil
 					do	"${1}" "${fil}" "${acdir}"
 					done
 				else	test -r "${acsub}" || continue

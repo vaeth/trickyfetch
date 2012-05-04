@@ -35,7 +35,7 @@ esac || Fatal 'cannot determine DISTDIR'
 
 Exec cd -- "${distdir}"
 if ! test -d '.obsolete'
-then	( umask 002 && Exec mkdir .obsolete ) || exit ${?}
+then	Exec mkdir -m 2775 .obsolete || exit ${?}
 	[ -n "${UID}" ] || UID=`id -u`
 	if [ "${UID}" -eq 0 ]
 	then	Exec chown 'portage:portage' '.obsolete'
