@@ -141,7 +141,7 @@ MakeExternal() {
 }
 
 OptExternal() {
-	eval "[ -n \"\${${1}}\" ]" || MakeExternal ${1} ${2-${1}}
+	eval "[ -n \"\${${1}:++}\" ]" || MakeExternal ${1} ${2-${1}}
 }
 
 
@@ -161,9 +161,9 @@ IsInCut() {
 
 chowner_mode=
 Chowner() {
-	[ -n "${chowner_mode}" ] && return ${chowner_mode}
+	[ -n "${chowner_mode:++}" ] && return ${chowner_mode}
 	if ${chowner}
-	then	[ -n "${UID}" ] || UID=`id -u`
+	then	[ -n "${UID:++}" ] || UID=`id -u`
 		[ "${UID}" -eq 0 ] || chowner=false
 	fi
 	${chowner}
@@ -304,7 +304,7 @@ Cleanup() {
 		(
 			Cd "${clns}" && RmBadLinks
 		)
-		[ -n "${1}" ] && [ "${clns}" != "${obsdir}" ] && RmDir "${clns}"
+		[ -n "${1:++}" ] && [ "${clns}" != "${obsdir}" ] && RmDir "${clns}"
 	done
 }
 

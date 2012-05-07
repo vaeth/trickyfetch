@@ -32,7 +32,7 @@ Fatal() {
 	exit 1
 }
 
-if [ -z "${DISTDIR}" ] || ! test -d "${DISTDIR}"
+if [ -z "${DISTDIR:++}" ] || ! test -d "${DISTDIR}"
 then	Info "Called with wrong arguments"
 	Fatal "second argument \"${DISTDIR}\" is not a directory"
 fi
@@ -115,7 +115,7 @@ done
 
 # An empty filename is something which we assume is already downloaded
 
-[ -z "${FILE}" ] && exit
+[ -z "${FILE:++}" ] && exit
 
 # Now trickyfetch moves the files if possible
 # Finish if at least one move was successful
@@ -135,7 +135,7 @@ esac
 
 # If LOCALFETCHCOMMAND exists, use it:
 
-if [ -n "${LOCALFETCHCOMMAND}" ]
+if [ -n "${LOCALFETCHCOMMAND:++}" ]
 then	Info "Using \${LOCALFETCHCOMMAND} for ${URI}"
 	eval "${LOCALFETCHCOMMAND}"
 	exit
@@ -143,7 +143,7 @@ fi
 
 # If getdelta.sh is possible, use it:
 
-if [ -n "${NODELTA}" ]
+if [ -n "${NODELTA:++}" ]
 then	Info "Not using getdelta because NODELTA is set."
 elif ! test -x /usr/bin/getdelta.sh
 then	Info "Not using app-portage/getdelta since it is not installed."

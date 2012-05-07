@@ -22,9 +22,8 @@ Exec() {
 	"${@}" || Fatal "${*} failed" ${?}
 }
 
-eix_functions=`command -v eix-functions.sh 2>/dev/null` || eix_functions=
-if [ -n "${eix_functions}" ]
-then	. "${eix_functions}"
+if command -v eix-functions.sh 2>/dev/null
+then	. eix-functions.sh
 	ReadVar distdir DISTDIR
 else	distdir=`portageq distdir` || distdir=
 fi
@@ -36,7 +35,7 @@ esac || Fatal 'cannot determine DISTDIR'
 Exec cd -- "${distdir}"
 if ! test -d '.obsolete'
 then	Exec mkdir -m 2775 .obsolete || exit ${?}
-	[ -n "${UID}" ] || UID=`id -u`
+	[ -n "${UID:++}" ] || UID=`id -u`
 	if [ "${UID}" -eq 0 ]
 	then	Exec chown 'portage:portage' '.obsolete'
 	else	Exec chgrp 'portage' '.obsolete'
