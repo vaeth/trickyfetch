@@ -22,7 +22,7 @@ Exec() {
 	"${@}" || Fatal "${*} failed" ${?}
 }
 
-if command -v eix-functions.sh 2>/dev/null
+if command -v eix-functions.sh >/dev/null 2>&1
 then	. eix-functions.sh
 	ReadVar distdir DISTDIR
 else	distdir=`portageq distdir` || distdir=
