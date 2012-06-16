@@ -87,14 +87,34 @@ I recommend the one of the mv overlay which is working.
 If you have installed app-portage/getdelta, the trickyfetch script
 will use it automatically, i.e. in contrast to the description of
 app-portage/getdelta you need not modify anything if you use trickyfetch.
+
 If you do not want to use getdelta, either set the environment variable
-NODELTA to a nonempty value (either locally or in your make.conf), or create
+NODELTA=* (either locally or in your make.conf), or create
 the file $DISTDIR/.nodelta
-Note that creating/remove that file has the advantage that you can change
-"on the fly" (during portage is fetch) whether getdelta should be used
+Note that creating/removing that file has the advantage that you can change
+"on the fly" (during portage is fetching) whether getdelta should be used
 for further packages or not.
 
-If you do not have getdelta installed, a default wget command is used.
+The variable NODELTA mentioned above contains a (space-separated)
+list of masks; if the name of the file which should be fetched
+matches a mask listed in NODELTA, then getdelta is not used.
+
+In addition to NODELTA you can also use EXCLUDE_DELTA:
+If EXCLUDE_DELTA contains the name of a file, then the masks
+(with the same meaning as in NODELTA) are read from this file.
+If EXCLUDE_DELTA contains the name of a directory, the masks are
+read from all non-hidden files in this directory or subdirectories.
+
+I recommend to set EXCLUDE_DELTA in your make.conf and to set
+NODELTA only locally for specific commands.
+
+If your GENTOO_MIRROR contains more than one mirror, getdelta is not used
+if you are fetching from a later mirror than the first: This avoids that
+getdelta is used after it already failed for the first mirror.
+(This test can be faster if you have eix installed).
+
+If you do not have getdelta installed (or if getdelta is excluded or failed)
+a default wget command is used.
 
 
 (b) Support for logging:
@@ -111,7 +131,7 @@ If you want to use a temporary directory, I recommend to use
 (c) LOCALFETCHCOMMAND support for your own scripts:
 
 If you define LOCALFETCHCOMMAND, this will be called after logging,
-but instead of any net access (i.e. getdelta.sh or wget will not be called).
+but instead of any net access (i.e. getdelta or wget will not be called).
 LOCALFETCHCOMMAND takes the role of portage's original FETCHCOMMAND
 (and must be set completely analogously if you want to use it).
 
