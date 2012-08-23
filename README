@@ -44,9 +44,10 @@ the following steps:
 	mkdir .obsolete
 	mv -i -- * .obsolete
 2. Make portage fetch all missing files from DISTDIR:
-	emerge system world
+	PORTAGE_CHECKSUM_FILTER='-* size' emerge system world
    If you want to be more careful (and use >=portage-2.2), use instead better
-	emerge -feD --with-bdeps=y @system @world
+	PORTAGE_CHECKSUM_FILTER='-* size' \
+		emerge -feD --with-bdeps=y @system @world
 
 (There is also a tiny bin/obsolete" script in this project which does
 exactly the two steps above [with the >=portage-2.2 variant]. You might also
