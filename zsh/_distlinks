@@ -1,4 +1,6 @@
 #compdef distlinks
+local context state state_descr line
+typeset -A opt_args
 _arguments -s -S -A '-*' : \
 '(1 -)'{'-h','-H','-\\?'}'[help]' \
 '(-f)-1[flatten structure: symlinks for .obsolete/.save*]' \
@@ -12,4 +14,17 @@ _arguments -s -S -A '-*' : \
 '-T[omit executing the trickyfetch script]' \
 '-v[verbose]' \
 '-O[do not make portage the owner of the files]' \
-'1::command:(create remove help)'
+'1::command:->cmds'
+local ret=$?
+case $state in
+cmds)
+	local cmds
+	cmds=(
+	'create:create symlinks in $DISTDIR'
+	'remote:remove symlinks in $DISTDIR'
+	'help:print help'
+	)
+	_describe -t commands 'command' cmds
+	ret=$?;;
+esac
+return ret
