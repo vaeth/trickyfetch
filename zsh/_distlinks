@@ -21,7 +21,7 @@ cmds)
 	local cmds
 	cmds=(
 	'create:create symlinks in $DISTDIR'
-	'remote:remove symlinks in $DISTDIR'
+	'remove:remove symlinks in $DISTDIR'
 	'help:print help'
 	)
 	_describe -t commands 'command' cmds

@@ -81,6 +81,9 @@ These points must be explained in more detail:
 
 (a) Support for app-portage/getdelta:
 
+This is optional; support for this can be enabled or disabled by editing
+the first lines in the trickyfetch script appropriately.
+
 Note that current versions of app-portage/getdelta are broken:
 	http://bugs.gentoo.org/show_bug.cgi?id=239439
 I recommend the one of the mv overlay which is working.
