@@ -25,7 +25,8 @@ to log the files which are actually fetched.
 
 The script trickyfetch of this project is such a wrapper:
 To install it, simply copy bin/trickyfetch (with executable permissions)
-into a directory from $PATH and then define in your
+into a directory from $PATH, and etc/trickyfetch.conf into /etc or into
+another directory from $PATH and then define in your
 /etc/portage/make.conf (or /etc/make.conf):
 
 FETCHCOMMAND="trickyfetch \"\${URI}\" \"\${DISTDIR}\" \"\${FILE}\""
@@ -71,7 +72,7 @@ files due to checksum errors.)
 The trickyfetch script also has a lot of additional features:
 
 (a) It supports app-portage/getdelta and can temporarily switch it off.
-(b) It supports logging for the files actually fetched from the net.
+(b) It supports logging for the files actually attempted to fetch from the net.
 (c) It supports LOCALFETCHCOMMAND to define your own way of fetching data.
 (d) It helps you to keep certain files permanently and "organize" your DISTDIR.
     This is also support by the bin/distlinks script provided by this project.
@@ -81,8 +82,8 @@ These points must be explained in more detail:
 
 (a) Support for app-portage/getdelta:
 
-This is optional; support for this can be enabled or disabled by editing
-the first lines in the trickyfetch script appropriately.
+This is optional; support for this can be enabled or disabled
+in /etc/trickyfetch.conf
 
 Note that current versions of app-portage/getdelta are broken:
 	http://bugs.gentoo.org/show_bug.cgi?id=239439
@@ -91,8 +92,11 @@ I recommend the one of the mv overlay which is working.
 If you have installed app-portage/getdelta, the trickyfetch script
 will use it automatically, i.e. in contrast to the description of
 app-portage/getdelta you need not modify anything if you use trickyfetch.
+(Provided, of course, that you enabled the support at all in
+/etc/trickyfetch.conf).
 
-If you do not want to use getdelta, either set the environment variable
+If want to disable getdelta (even if you enabled the support in
+/etc/trickyfetch.conf), either set the environment variable
 NODELTA=* (either locally or in your make.conf), or create
 the file $DISTDIR/.nodelta
 Note that creating/removing that file has the advantage that you can change
@@ -123,13 +127,8 @@ a default wget command is used.
 
 (b) Support for logging:
 
-If you set the environment-variable TRICKYLOG to an absolute path
-(either locally or in your make.conf) then trickyfetch will log all
-URLs which are actually fetched from the net into the file $TRICKYLOG.
-For security-reasons, you should not choose a filename of a world-writable
-directory (e.g. /tmp/trickylog.log would be a very bad choice).
-If you want to use a temporary directory, I recommend to use
-	TRICKYLOG=/var/tmp/portage/trickyfetch.log
+This can be setup in /etc/trickyfetch.conf
+See that file for details.
 
 
 (c) LOCALFETCHCOMMAND support for your own scripts:

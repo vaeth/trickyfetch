@@ -1,6 +1,14 @@
 #! /usr/bin/env sh
-# set to ":" or "false", depending on whether support for getdelta is desired:
-trickyfetch_getdelta=:
+
+# For security reasons, we reset all variables containing commands
+# which should be set in the configfile
+LOGGING_FETCH=
+LOGGING_ERROR=
+WGET=
+
+# Source the configfile, looking for it first in /etc then in $PATH.
+# By POSIX, the shell exits if this file does not exist
+PATH="/etc${PATH:+:}${PATH}" . trickyfetch.conf
 
 export URI DISTDIR FILE
 URI=${1}
@@ -24,6 +32,7 @@ esac
 
 Error() {
 	Echo "${0##*/}: ${*}" >&2
+	${LOGGING_ERROR:-:} "${*}"
 }
 
 Fatal() {
@@ -123,13 +132,12 @@ Mv Info "${DISTDIR}/.obsolete/${FILE}" "${DISTDIR}"/.save*/"${FILE}" && exit
 
 # Now we log, since we really have to fetch something and not only to move:
 
-case ${TRICKYLOG} in
-/*)
-	if [ "${URI##*/}" = "${FILE}" ]
-	then	Echo "${URI}" >>"${TRICKYLOG}"
-	else	Echo "${URI} -> ${FILE}" >>"${TRICKYLOG}"
-	fi;;
-esac
+if [ -n "${LOGGING_FETCH}" ]
+then	if [ "${URI##*/}" = "${FILE}" ]
+	then	${LOGGING_FETCH} "${URI}"
+	else	${LOGGING_FETCH} "${URI}" "${FILE}"
+	fi
+fi
 
 # If LOCALFETCHCOMMAND exists, use it:
 
@@ -140,7 +148,7 @@ then	Info "Using \${LOCALFETCHCOMMAND} for ${URI}"
 fi
 
 # /* Optional getdelta support
-if ${trickyfetch_getdelta}
+if [ -n "${TRICKYFETCH_GETDELTA}" ]
 then
 
 ReadMirror() {
@@ -199,11 +207,11 @@ fi
 
 # The default wget is actually only the final fallback:
 
-wget='wget -t 1 -T 15 --passive-ftp --no-glob'
+: ${WGET:=wget -t 1 -T 15 --passive-ftp --no-glob}
 if [ "${URI##*/}" = "${FILE}" ]
 then	Info "Calling wget to fetch ${FILE}"
-	exec ${wget} -P "${DISTDIR}" -- "${URI}"
+	exec ${WGET} -P "${DISTDIR}" -- "${URI}"
 else	Info "Calling wget -O ${FILE}"
-	exec ${wget} -O "${DISTDIR}/${FILE}" -- "${URI}"
+	exec ${WGET} -O "${DISTDIR}/${FILE}" -- "${URI}"
 fi
 Fatal "could not execute wget for ${FILE}"
