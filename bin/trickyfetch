@@ -1,4 +1,4 @@
-#! /usr/bin/env sh
+#!/usr/bin/env sh
 
 # For security reasons, we reset all variables containing commands
 # which should be set in the configfile
