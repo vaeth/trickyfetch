@@ -74,7 +74,8 @@ The trickyfetch script also has a lot of additional features:
 (a) It supports app-portage/getdelta and can temporarily switch it off.
 (b) It supports logging for the files actually attempted to fetch from the net.
 (c) It supports LOCALFETCHCOMMAND to define your own way of fetching data.
-(d) It helps you to keep certain files permanently and "organize" your DISTDIR.
+(d) It supports wget as a fallback (WGET, WGET_EXTRA_OPTS)
+(e) It helps you to keep certain files permanently and "organize" your DISTDIR.
     This is also support by the bin/distlinks script provided by this project.
 
 These points must be explained in more detail:
@@ -155,7 +156,21 @@ to avoid any internet access when that script is run, but in this case
 you might have to manually care later about renamed files by portage.
 
 
-(d) Keep certain files permanently and "organize" your DISTDIR:
+(d) WGET, WGET_EXTRA_OPTS:
+
+In WGET you can define wget and "standard" options to wget.
+Of course, you can use another tool instead of wget; however, this tool
+has to support the options -P and -O of wget which are passed immediately
+after $WGET.
+WGET_EXTRA_OPTS is meant to be set temporarily in special situations
+(e.g. when you need to pass options like --no-check-certificate
+which you do not want to pass regularly, of course).
+Both variables are eval'ed, that is, you can use quoting or even write
+a shell function in WGET to handle the option -P/-O and its argument.
+Be aware that due to this eval even WGET_EXTRA_OPTS can be misused to
+inject arbitrary shell commands into the fetch process!
+
+(e) Keep certain files permanently and "organize" your DISTDIR:
 
 Directories of the form  $DISTDIR/.save* (you can have several of those)
 are treated similarly to $DISTDIR/.obsolete by trickyfetch, but with a

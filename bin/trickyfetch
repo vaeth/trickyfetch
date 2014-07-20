@@ -207,11 +207,16 @@ fi
 
 # The default wget is actually only the final fallback:
 
-: ${WGET:=wget -t 1 -T 15 --passive-ftp --no-glob}
+: ${WGET:=wget -t 1 -T 15 --passive-ftp --no-glob ${WGET_EXTRA_OPTS}}
 if [ "${URI##*/}" = "${FILE}" ]
 then	Info "Calling wget to fetch ${FILE}"
-	exec ${WGET} -P "${DISTDIR}" -- "${URI}"
+	eval ${WGET} -P \"\${DISTDIR}\" ${WGET_EXTRA_OPTS} -- \"\${URI}\"
 else	Info "Calling wget -O ${FILE}"
-	exec ${WGET} -O "${DISTDIR}/${FILE}" -- "${URI}"
-fi
-Fatal "could not execute wget for ${FILE}"
+	eval ${WGET} -O \"\${DISTDIR}/\${FILE}\" ${WGET_EXTRA_OPTS} -- \"\${URI}\"
+fi && exit 0
+Error '$WGET for '"${FILE} failed."
+Error 'In some cases, it might help to set $WGET_EXTRA_OPTS appropriately,'
+Error 'for instance (if you are willing to take the security risk):'
+Error '	export WGET_EXTRA_OPTS=--no-check-certificate'
+Error
+exit 1
