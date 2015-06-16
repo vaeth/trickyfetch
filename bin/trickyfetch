@@ -8,95 +8,95 @@ WGET=
 
 # Source the configfile, looking for it first in /etc then in $PATH.
 # By POSIX, the shell exits if this file does not exist
-PATH="/etc${PATH:+:}${PATH}" . trickyfetch.conf
+PATH=/etc${PATH:+:}$PATH . trickyfetch.conf
 
 export URI DISTDIR FILE
-URI=${1}
-DISTDIR=${2}
-FILE=${3}
+URI=$1
+DISTDIR=$2
+FILE=$3
 
 Echo() {
-	printf '%s\n' "${*}"
+	printf '%s\n' "$*"
 }
 
 case ${NOCOLOR:-false} in
 [fFnN0]*|[oO][fF]*)
 Info() {
-	printf '\033[1;35m>>> %s\033[0m: \033[1;32m%s\033[0m\n' "${0##*/}" "${*}"
+	printf '\033[1;35m>>> %s\033[0m: \033[1;32m%s\033[0m\n' "${0##*/}" "$*"
 };;
 *)
 Info() {
-	Echo ">>> ${0##*/}: ${*}"
+	Echo ">>> ${0##*/}: $*"
 };;
 esac
 
 Error() {
-	Echo "${0##*/}: ${*}" >&2
-	${LOGGING_ERROR:-:} "${*}"
+	Echo "${0##*/}: $*" >&2
+	${LOGGING_ERROR:-:} "$*"
 }
 
 Fatal() {
-	Error "fatal: ${*}"
+	Error "fatal: $*"
 	exit 1
 }
 
-if [ -z "${DISTDIR:++}" ] || ! test -d "${DISTDIR}"
+if [ -z "${DISTDIR:++}" ] || ! test -d "$DISTDIR"
 then	Info 'Called with wrong arguments'
-	Fatal "second argument \"${DISTDIR}\" is not a directory"
+	Fatal "second argument \"$DISTDIR\" is not a directory"
 fi
 
 # First argument must be one of
 #  Info  Verbose
 #  :     Non-verbose
-# The other arguments are candidates for files/dirs to be moved to ${DISTDIR}.
+# The other arguments are candidates for files/dirs to be moved to $DISTDIR.
 # Success if at least one file/dir could be moved.
 
 Mv() {
 	# If mv_cont is continue, no (further) dir-tricky_contents
 	#  are moved to avoid mixing dirs
 	mv_cont=
-	mv_info=${1}
+	mv_info=$1
 	shift
 	for mv_i
-	do	test -e "${mv_i}" || continue
-		mv_dest="${DISTDIR}/${mv_i##*/}"
-		if ! test -e "${mv_dest}"
-		then	${mv_info} "Moving source from ${mv_i}"
-			mv -- "${mv_i}" "${mv_dest}" && return 0
+	do	test -e "$mv_i" || continue
+		mv_dest=$DISTDIR/${mv_i##*/}
+		if ! test -e "$mv_dest"
+		then	$mv_info "Moving source from $mv_i"
+			mv -- "$mv_i" "$mv_dest" && return 0
 			mv_cont=continue
-			Error "failed moving ${mv_i}"
+			Error "failed moving $mv_i"
 			continue
 		fi
-		${mv_cont}
-		test -d "${mv_dest}" || continue
-		test -d "${mv_i}" || continue
-		${mv_info} "Moving dir-content of ${mv_i}/*"
+		$mv_cont
+		test -d "$mv_dest" || continue
+		test -d "$mv_i" || continue
+		$mv_info "Moving dir-content of $mv_i/*"
 		mv_match=:
-		for mv_j in "${mv_i}"/*
+		for mv_j in "$mv_i"/*
 		do	mv_name=${mv_j##*/}
-			case ${mv_name} in
+			case $mv_name in
 			.|..)	continue;;
 			esac
-			test -e "${mv_j}" || continue
-			if test -e "${mv_dest}/${mv_name}"
+			test -e "$mv_j" || continue
+			if test -e "$mv_dest/$mv_name"
 			then	mv_match=false
 				continue
 			fi
-			mv -- "${mv_j}" "${mv_dest}" || mv_match=false
+			mv -- "$mv_j" "$mv_dest" || mv_match=false
 		done
-		if ${mv_match} && test -L "${mv_i}"
-		then	rm -- "${mv_i}" && return
-		else	rmdir -- "${mv_i}" && return
+		if $mv_match && test -L "$mv_i"
+		then	rm -- "$mv_i" && return
+		else	rmdir -- "$mv_i" && return
 		fi
 		mv_cont=continue
-		Error "failed moving dir-content of ${mv_i}/*"
+		Error "failed moving dir-content of $mv_i/*"
 	done
 	return 1
 }
 
 # These tasks are alway done, even if no file should need to be fetched:
 
-# A somewhat special treatment is needed for ${DISTDIR}/*-src, because the
+# A somewhat special treatment is needed for $DISTDIR/*-src, because the
 # files in these directories are not fetched by
 # "emerge -feD --with-bdeps y @world @system".
 # Therefore, trickyfetch tacitly moves back these directories from .obsolete
@@ -107,18 +107,18 @@ Mv() {
 # has a reason if he moves some *-src there, so trickyfetch should better
 # not interfere.
 
-for i in "${DISTDIR}/.obsolete"/*-src
-do	test -d "${i}" && Mv : "${i}"
+for i in "$DISTDIR/.obsolete"/*-src
+do	test -d "$i" && Mv : "$i"
 done
 
 # The files in .restricted are always linked if they don't exist
 
-for i in "${DISTDIR}/.restricted"/*
-do	test -e "${i}" || continue
+for i in "$DISTDIR/.restricted"/*
+do	test -e "$i" || continue
 	name=${i##*/}
-	Mv : "${DISTDIR}/.obsolete/${name}" "${DISTDIR}"/.save*/"${name}" \
-		|| test -e "${DISTDIR}/${name}" \
-		|| ln -s -- "${i}" "${DISTDIR}/${name}"
+	Mv : "$DISTDIR/.obsolete/$name" "$DISTDIR"/.save*/"$name" \
+		|| test -e "$DISTDIR/$name" \
+		|| ln -s -- "$i" "$DISTDIR/$name"
 done
 
 # An empty filename is something which we assume is already downloaded
@@ -128,27 +128,27 @@ done
 # Now trickyfetch moves the files if possible
 # Finish if at least one move was successful
 
-Mv Info "${DISTDIR}/.obsolete/${FILE}" "${DISTDIR}"/.save*/"${FILE}" && exit
+Mv Info "$DISTDIR/.obsolete/$FILE" "$DISTDIR"/.save*/"$FILE" && exit
 
 # Now we log, since we really have to fetch something and not only to move:
 
-if [ -n "${LOGGING_FETCH}" ]
-then	if [ "${URI##*/}" = "${FILE}" ]
-	then	${LOGGING_FETCH} "${URI}"
-	else	${LOGGING_FETCH} "${URI}" "${FILE}"
+if [ -n "$LOGGING_FETCH" ]
+then	if [ "${URI##*/}" = "$FILE" ]
+	then	$LOGGING_FETCH "$URI"
+	else	$LOGGING_FETCH "$URI" "$FILE"
 	fi
 fi
 
 # If LOCALFETCHCOMMAND exists, use it:
 
 if [ -n "${LOCALFETCHCOMMAND:++}" ]
-then	Info "Using \${LOCALFETCHCOMMAND} for ${URI}"
-	eval "${LOCALFETCHCOMMAND}"
+then	Info "Using \$LOCALFETCHCOMMAND for $URI"
+	eval "$LOCALFETCHCOMMAND"
 	exit
 fi
 
 # /* Optional getdelta support
-if [ -n "${TRICKYFETCH_GETDELTA}" ]
+if [ -n "$TRICKYFETCH_GETDELTA" ]
 then
 
 ReadMirror() {
@@ -163,9 +163,9 @@ ReadMirror() {
 GoodDeltaMirror() {
 	ReadMirror
 	retmirror=0
-	for mirror in ${GENTOO_MIRRORS}
-	do	case ${URI} in
-		*"${mirror#*://}"*)	return ${retmirror};;
+	for mirror in $GENTOO_MIRRORS
+	do	case $URI in
+		*"${mirror#*://}"*)	return $retmirror;;
 		esac
 		retmirror=1
 	done
@@ -173,33 +173,33 @@ GoodDeltaMirror() {
 
 IsAMatch() {
 	for isamask
-	do	case ${FILE} in
-		${isamask})	return 0;;
+	do	case $FILE in
+		$isamask)	return 0;;
 		esac
 	done
 	return 1
 }
 
 DeltaExcluded() {
-	[ -n "${DELTA_EXCLUDE:++}" ] && IsAMatch `find -L "${DELTA_EXCLUDE}" \
+	[ -n "${DELTA_EXCLUDE:++}" ] && IsAMatch `find -L "$DELTA_EXCLUDE" \
 		'(' '(' -name '.*' -o -name '*~' ')' -prune ')' -o \
 		-type f -exec cat '{}' '+'`
 }
 
 set -f
-if IsAMatch ${NODELTA}
-then	Info 'Not using getdelta since ${NODELTA} matches the filename'
+if IsAMatch $NODELTA
+then	Info 'Not using getdelta since $NODELTA matches the filename'
 elif ! command -v getdelta.sh >/dev/null 2>&1
 then	Info 'Not using app-portage/getdelta since it is not installed'
-elif test -e "${DISTDIR}/.nodelta"
-then	Info 'Not using getdelta since ${DISTDIR}/.nodelta exists'
+elif test -e "$DISTDIR/.nodelta"
+then	Info 'Not using getdelta since $DISTDIR/.nodelta exists'
 elif ! GoodDeltaMirror
 then	Info 'Not using getdelta since we are on a later GENTOO_MIRROR'
 elif DeltaExcluded
-then	Info 'Not using getdelta since filename matches in ${DELTA_EXCLUDE}'
-else	Info "Calling getdelta to fetch ${FILE}"
-	exec getdelta.sh "${URI}" "${FILE}"
-	Fatal "could not execute getdelta.sh for ${FILE}"
+then	Info 'Not using getdelta since filename matches in $DELTA_EXCLUDE'
+else	Info "Calling getdelta to fetch $FILE"
+	exec getdelta.sh "$URI" "$FILE"
+	Fatal "could not execute getdelta.sh for $FILE"
 fi
 
 fi
@@ -207,14 +207,14 @@ fi
 
 # The default wget is actually only the final fallback:
 
-: ${WGET:=wget -t 1 -T 15 --passive-ftp --no-glob ${WGET_EXTRA_OPTS}}
-if [ "${URI##*/}" = "${FILE}" ]
-then	Info "Calling wget to fetch ${FILE}"
-	eval ${WGET} -P \"\${DISTDIR}\" ${WGET_EXTRA_OPTS} -- \"\${URI}\"
-else	Info "Calling wget -O ${FILE}"
-	eval ${WGET} -O \"\${DISTDIR}/\${FILE}\" ${WGET_EXTRA_OPTS} -- \"\${URI}\"
+: ${WGET:=wget -t 1 -T 15 --passive-ftp --no-glob $WGET_EXTRA_OPTS}
+if [ "${URI##*/}" = "$FILE" ]
+then	Info "Calling wget to fetch $FILE"
+	eval $WGET -P \"\$DISTDIR\" $WGET_EXTRA_OPTS -- \"\$URI\"
+else	Info "Calling wget -O $FILE"
+	eval $WGET -O \"\$DISTDIR/\$FILE\" $WGET_EXTRA_OPTS -- \"\$URI\"
 fi && exit 0
-Error '$WGET for '"${FILE} failed."
+Error '$WGET for '"$FILE failed."
 Error 'In some cases, it might help to set $WGET_EXTRA_OPTS appropriately,'
 Error 'for instance (if you are willing to take the security risk):'
 Error '	export WGET_EXTRA_OPTS=--no-check-certificate'

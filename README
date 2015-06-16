@@ -29,7 +29,7 @@ into a directory from $PATH, and etc/trickyfetch.conf into /etc or into
 another directory from $PATH and then define in your
 /etc/portage/make.conf (or /etc/make.conf):
 
-FETCHCOMMAND="trickyfetch \"\${URI}\" \"\${DISTDIR}\" \"\${FILE}\""
+FETCHCOMMAND="trickyfetch \"\$URI\" \"\$DISTDIR\" \"\$FILE\""
 
 If you already had set FETCHCOMMAND, you can put this instead into
 LOCALFETCHCOMMAND (the trickyfetch script will use this similarly as
@@ -62,7 +62,7 @@ $DISTDIR/.obsolete subdirectory into $DISTDIR.  Of course, files which cannot
 be found in that subdirectory will be fetched from the net, as usual.
 
 Optionally, you might want to set the environment variable
-	LOCALFETCHCOMMAND="false"
+	LOCALFETCHCOMMAND=false
 in step 2 (or when running the obsolete script):
 This way, there is never any access to the net, even if files are missing
 or their size/checksum in the Manifest is wrong. (Of course, if you do this
@@ -258,14 +258,14 @@ so that you can simply "mv" or "cp -a" this directory to create new one.
 The $PARENT/fetch directory is meant to be used as storage directory
 for live ebuilds. To use it, put into your make.conf something like
 
-ESCM_STORE_DIR="${DISTDIR}/../fetch"
-ECVS_TOP_DIR="${ESCM_STORE_DIR}"
-EBZR_STORE_DIR="${ESCM_STORE_DIR}"
-ECVS_STORE_DIR="${ESCM_STORE_DIR}"
-EGIT_STORE_DIR="${ESCM_STORE_DIR}"
-EHG_STORE_DIR="${ESCM_STORE_DIR}"
-EMTN_STORE_DIR="${ESCM_STORE_DIR}"
-ESVN_STORE_DIR="${ESCM_STORE_DIR}"
+ESCM_STORE_DIR=$DISTDIR/../fetch
+ECVS_TOP_DIR=$ESCM_STORE_DIR
+EBZR_STORE_DIR=$ESCM_STORE_DIR
+ECVS_STORE_DIR=$ESCM_STORE_DIR
+EGIT_STORE_DIR=$ESCM_STORE_DIR
+EHG_STORE_DIR=$ESCM_STORE_DIR
+EMTN_STORE_DIR=$ESCM_STORE_DIR
+ESVN_STORE_DIR=$ESCM_STORE_DIR
 
 The "distlinks" and "obsolete" script runs slightly faster if eix is installed.
 

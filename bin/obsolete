@@ -1,25 +1,25 @@
 #!/usr/bin/env sh
 
 Echo() {
-	printf '%s\n' "${*}"
+	printf '%s\n' "$*"
 }
 
 Fatal() {
-	Echo "${0##*/}: ${1}" >&2
+	Echo "${0##*/}: $1" >&2
 	exit ${2:-1}
 }
 
 Warn() {
-	Echo "${0##*/}: warning: ${1}" >&2
+	Echo "${0##*/}: warning: $1" >&2
 }
 
 Info() {
-	Echo "# ${*}"
+	Echo "# $*"
 }
 
 Exec() {
-	Info "${*}"
-	"${@}" || Fatal "${*} failed" ${?}
+	Info "$*"
+	"$@" || Fatal "$* failed" $?
 }
 
 if command -v eix-functions.sh >/dev/null 2>&1
@@ -27,30 +27,30 @@ then	. eix-functions.sh
 	ReadVar distdir DISTDIR
 else	distdir=`portageq distdir` || distdir=
 fi
-case ${distdir} in
-/*)	test -d "${distdir}";;
+case $distdir in
+/*)	test -d "$distdir";;
 *)	false;;
 esac || Fatal 'cannot determine DISTDIR'
 
-Exec cd -- "${distdir}"
+Exec cd -- "$distdir"
 if ! test -d '.obsolete'
-then	Exec mkdir -m 2775 .obsolete || exit ${?}
+then	Exec mkdir -m 2775 .obsolete || exit $?
 	[ -n "${UID:++}" ] || UID=`id -u`
-	if [ "${UID}" -eq 0 ]
+	if [ "$UID" -eq 0 ]
 	then	Exec chown 'portage:portage' '.obsolete'
 	else	Exec chgrp 'portage' '.obsolete'
 	fi
 fi
 Info 'mv -- * .obsolete'
 for i in *
-do	if test -r "${i}" && ! test -d "${i}" && ! test -r ".obsolete/${i}"
-	then	mv -- "${i}" .obsolete || Fatal "mv ${i} .obsolete failed"
-	elif [ "${i}" != '*' ]
-	then	Warn "not moving to .obsolete: ${i}"
+do	if test -r "$i" && ! test -d "$i" && ! test -r ".obsolete/$i"
+	then	mv -- "$i" .obsolete || Fatal "mv $i .obsolete failed"
+	elif [ "$i" != '*' ]
+	then	Warn "not moving to .obsolete: $i"
 	fi
 done
 PORTAGE_CHECKSUM_FILTER='-* size'
-Info "export PORTAGE_CHECKSUM_FILTER='${PORTAGE_CHECKSUM_FILTER}'"
+Info "export PORTAGE_CHECKSUM_FILTER='$PORTAGE_CHECKSUM_FILTER'"
 export PORTAGE_CHECKSUM_FILTER
 Info 'emerge -feD --with-bdeps=y @system @world'
 exec emerge -feD --with-bdeps=y '@system' '@world'
