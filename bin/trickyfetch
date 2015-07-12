@@ -1,19 +1,18 @@
 #!/usr/bin/env sh
-
+set -u
 # For security reasons, we reset all variables containing commands
 # which should be set in the configfile
 LOGGING_FETCH=
 LOGGING_ERROR=
-WGET=
 
 # Source the configfile, looking for it first in /etc then in $PATH.
 # By POSIX, the shell exits if this file does not exist
 PATH=/etc${PATH:+:}$PATH . trickyfetch.conf
 
 export URI DISTDIR FILE
-URI=$1
-DISTDIR=$2
-FILE=$3
+URI=${1-}
+DISTDIR=${2-}
+FILE=${3-}
 
 Echo() {
 	printf '%s\n' "$*"
@@ -187,8 +186,8 @@ DeltaExcluded() {
 }
 
 set -f
-if IsAMatch $NODELTA
-then	Info 'Not using getdelta since $NODELTA matches the filename'
+if IsAMatch ${NODELTA-}
+then	Info 'Not using getdelta since "${NODELTA-}" matches the filename'
 elif ! command -v getdelta.sh >/dev/null 2>&1
 then	Info 'Not using app-portage/getdelta since it is not installed'
 elif test -e "$DISTDIR/.nodelta"
@@ -207,6 +206,7 @@ fi
 
 # The default wget is actually only the final fallback:
 
+: ${WGET_EXTRA_OPTS:=}
 : ${WGET:=wget -t 1 -T 15 --passive-ftp --no-glob $WGET_EXTRA_OPTS}
 if [ "${URI##*/}" = "$FILE" ]
 then	Info "Calling wget to fetch $FILE"

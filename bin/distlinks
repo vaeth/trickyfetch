@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-
+set -u
 Echo() {
 	printf '%s\n' "$*"
 }
@@ -173,9 +173,9 @@ Chowner() {
 
 Ownership() {
 	if Chowner
-	then	chown $2 -- 'portage:portage' "$1" || \
+	then	chown ${2-} -- 'portage:portage' "$1" || \
 			Warning "cannot change ownership of $1"
-	else	chgrp $2 -- 'portage' "$1" || \
+	else	chgrp ${2-} -- 'portage' "$1" || \
 			Warning "cannot change group of $1"
 	fi
 }
