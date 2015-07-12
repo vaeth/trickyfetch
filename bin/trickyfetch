@@ -7,7 +7,7 @@ LOGGING_ERROR=
 
 # Source the configfile, looking for it first in /etc then in $PATH.
 # By POSIX, the shell exits if this file does not exist
-PATH=/etc${PATH:+:}$PATH . trickyfetch.conf
+PATH=/etc${PATH:+:}${PATH-} . trickyfetch.conf
 
 export URI DISTDIR FILE
 URI=${1-}
@@ -147,7 +147,7 @@ then	Info "Using \$LOCALFETCHCOMMAND for $URI"
 fi
 
 # /* Optional getdelta support
-if [ -n "$TRICKYFETCH_GETDELTA" ]
+if [ -n "${TRICKYFETCH_GETDELTA:++}" ]
 then
 
 ReadMirror() {
