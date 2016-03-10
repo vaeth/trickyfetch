@@ -49,6 +49,8 @@ do	if test -r "$i" && ! test -d "$i" && ! test -r ".obsolete/$i"
 	then	Warn "not moving to .obsolete: $i"
 	fi
 done
+Info "trickyfetch '' '$distdir' ''"
+trickyfetch '' "$distdir" '' >/dev/null
 PORTAGE_CHECKSUM_FILTER='-* size'
 Info "export PORTAGE_CHECKSUM_FILTER='$PORTAGE_CHECKSUM_FILTER'"
 export PORTAGE_CHECKSUM_FILTER
