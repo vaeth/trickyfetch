@@ -132,7 +132,7 @@ Mv Info "$DISTDIR/.obsolete/$FILE" "$DISTDIR"/.save*/"$FILE" && exit
 # Now we log, since we really have to fetch something and not only to move:
 
 if [ -n "$LOGGING_FETCH" ]
-then	if [ "${URI##*/}" = "$FILE" ]
+then	if [ x"${URI##*/}" = x"$FILE" ]
 	then	$LOGGING_FETCH "$URI"
 	else	$LOGGING_FETCH "$URI" "$FILE"
 	fi
@@ -208,7 +208,7 @@ fi
 
 : ${WGET_EXTRA_OPTS:=}
 : ${WGET:=wget -t 1 -T 15 --passive-ftp --no-glob $WGET_EXTRA_OPTS}
-if [ "${URI##*/}" = "$FILE" ]
+if [ x"${URI##*/}" = x"$FILE" ]
 then	Info "Calling wget to fetch $FILE"
 	eval $WGET -P \"\$DISTDIR\" $WGET_EXTRA_OPTS -- \"\$URI\"
 else	Info "Calling wget -O $FILE"

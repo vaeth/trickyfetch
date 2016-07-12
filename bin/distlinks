@@ -135,7 +135,7 @@ fi
 
 which=`command -v which` || which=
 MakeExternal() {
-	[ "$which" = 'which' ] && eval $1=\`which $2\` \
+	[ x"$which" = x'which' ] && eval $1=\`which $2\` \
 		|| eval $1=\`command -v $2\` || eval $1=
 	eval ": \${$1:=$2}"
 }
@@ -304,7 +304,7 @@ Cleanup() {
 		(
 			Cd "$clns" && RmBadLinks
 		)
-		[ -n "${1:++}" ] && [ "$clns" != "$obsdir" ] && RmDir "$clns"
+		[ -n "${1:++}" ] && [ x"$clns" != x"$obsdir" ] && RmDir "$clns"
 	done
 }
 
