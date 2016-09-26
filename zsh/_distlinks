@@ -2,7 +2,7 @@
 local curcontext="$curcontext" state state_descr line
 typeset -A opt_args
 _arguments -C -s -S -A '-*' : \
-'(1 -)'{'-h','-H','-\\?'}'[help]' \
+'(1 -)'{'-h','-H'}'[help]' \
 '(-f)-1[flatten structure: symlinks for .obsolete/.save*]' \
 '(-1)-f[force flatten: symlinks for .save*, move from .obsolete]' \
 '(-R)-r[(is default) remove matching/strange symlinks if possible]' \

@@ -93,7 +93,7 @@ forceflatten=false
 chowner=:
 tricky=:
 OPTIND=1
-while getopts '1farRcCkvOThH?' opt
+while getopts '1farRcCkvOThH' opt
 do	case $opt in
 	1)	flatten=:
 		forceflatten=false;;
@@ -108,6 +108,7 @@ do	case $opt in
 	v)	quiet=false;;
 	O)	chowner=false;;
 	T)	tricky=false;;
+	'?')	exit 1;;
 	*)	Usage 0;;
 	esac
 done
