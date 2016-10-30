@@ -152,7 +152,7 @@ then
 
 ReadMirror() {
 	[ -n "${GENTOO_MIRRORS++}" ] && return
-	if command -v eix-functions.sh >/dev/null 2>&1
+	if ( . eix-functions.sh ) >/dev/null 2>&1
 	then	. eix-functions.sh
 		ReadVar GENTOO_MIRRORS GENTOO_MIRRORS
 	else	GENTOO_MIRRORS=`portageq gentoo_mirrors`

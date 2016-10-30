@@ -17,7 +17,7 @@ Fatal() {
 	exit 1
 }
 
-if command -v eix-functions.sh >/dev/null 2>&1
+if ( . eix-functions.sh ) >/dev/null 2>&1
 then	. eix-functions.sh
 	ReadVar distdir DISTDIR
 else	distdir=`portageq distdir 2>/dev/null` \
