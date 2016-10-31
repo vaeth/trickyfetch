@@ -22,8 +22,8 @@ Exec() {
 	"$@" || Fatal "$* failed" $?
 }
 
-if ( . eix-functions.sh ) >/dev/null 2>&1
-then	. eix-functions.sh
+if eix_functions=`eix-functions.sh 2>/dev/null`
+then	eval "$eix_functions"
 	ReadVar distdir DISTDIR
 else	distdir=`portageq distdir` || distdir=
 fi
