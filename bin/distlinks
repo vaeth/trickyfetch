@@ -184,7 +184,11 @@ Ownership() {
 MkDir() {
 	test -d "$1" && return
 	Info "mkdir $1"
-	if mkdir -m 2775 -- "$1"
+	if Chowner
+	then	mkdir=3775
+	else	mkdir=2775
+	fi
+	if mkdir -m "$mkdir" -- "$1"
 	then	Ownership "$1"
 	else	Warning "cannot mkdir $1"
 	fi
