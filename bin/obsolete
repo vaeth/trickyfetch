@@ -36,9 +36,9 @@ Exec cd "$distdir"
 if ! test -d '.obsolete'
 then	[ -n "${UID:++}" ] || UID=`id -u`
 	if [ "$UID" -eq 0 ]
-	then	Exec mkdir -m 3775 .obsolete
+	then	Exec mkdir -m 3755 .obsolete
 		Exec chown 'portage:portage' '.obsolete'
-	else	Exec mkdir -m 2775 .obsolete
+	else	Exec mkdir -m 2755 .obsolete
 		Exec chgrp 'portage' '.obsolete'
 	fi
 fi

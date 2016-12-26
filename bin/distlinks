@@ -185,8 +185,8 @@ MkDir() {
 	test -d "$1" && return
 	Info "mkdir $1"
 	if Chowner
-	then	mkdir=3775
-	else	mkdir=2775
+	then	mkdir=3755
+	else	mkdir=2755
 	fi
 	if mkdir -m "$mkdir" -- "$1"
 	then	Ownership "$1"
