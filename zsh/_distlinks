@@ -24,7 +24,6 @@ cmds)
 	'remove:remove symlinks in $DISTDIR'
 	'help:print help'
 	)
-	_describe -t commands 'command' cmds
-	ret=$?;;
+	_describe -t commands 'command' cmds && ret=0;;
 esac
 return ret
