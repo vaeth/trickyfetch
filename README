@@ -29,7 +29,7 @@ into a directory from $PATH, and etc/trickyfetch.conf into /etc or into
 another directory from $PATH and then define in your
 /etc/portage/make.conf (or /etc/make.conf):
 
-FETCHCOMMAND="trickyfetch \"\$URI\" \"\$DISTDIR\" \"\$FILE\""
+FETCHCOMMAND="trickyfetch \"\${URI}\" \"\${DISTDIR}\" \"\${FILE}\""
 
 If you already had set FETCHCOMMAND, you can put this instead into
 LOCALFETCHCOMMAND (the trickyfetch script will use this similarly as
