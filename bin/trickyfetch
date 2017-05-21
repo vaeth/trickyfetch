@@ -97,7 +97,7 @@ Mv() {
 
 # A somewhat special treatment is needed for $DISTDIR/*-src, because the
 # files in these directories are not fetched by
-# "emerge -feD --with-bdeps y @world @system".
+# "emerge -feD --with-bdeps=y @world".
 # Therefore, trickyfetch tacitly moves back these directories from .obsolete
 # (because it was probably moved there by the user by "accident" with the
 # command "mv -i * .obsolete").

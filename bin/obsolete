@@ -55,5 +55,5 @@ trickyfetch '' "$distdir" '' >/dev/null
 PORTAGE_CHECKSUM_FILTER='-* size'
 Info "export PORTAGE_CHECKSUM_FILTER='$PORTAGE_CHECKSUM_FILTER'"
 export PORTAGE_CHECKSUM_FILTER
-Info 'emerge -feD --with-bdeps=y @system @world'
-exec emerge -feD --with-bdeps=y '@system' '@world'
+Info 'emerge -feD --with-bdeps=y @world'
+exec emerge -feD --with-bdeps=y '@world'
