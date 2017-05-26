@@ -18,8 +18,8 @@ Echo() {
 	printf '%s\n' "$*"
 }
 
-case ${NOCOLOR:-false} in
-[fFnN0]*|[oO][fF]*)
+case ${NOCOLOR:-n} in
+[fFnN]*|[oO][fF]*|0|-)
 Info() {
 	printf '\033[1;35m>>> %s\033[0m: \033[1;32m%s\033[0m\n' "${0##*/}" "$*"
 };;
