@@ -5,6 +5,9 @@ set -u
 LOGGING_FETCH=
 LOGGING_ERROR=
 
+# Force umask to a sane value. Use trickyfetch.conf to override this
+umask 022
+
 # Source the configfile, looking for it first in /etc then in $PATH.
 # By POSIX, the shell exits if this file does not exist
 PATH=/etc${PATH:+:}${PATH-} . trickyfetch.conf
@@ -164,7 +167,8 @@ GoodDeltaMirror() {
 	retmirror=0
 	for mirror in $GENTOO_MIRRORS
 	do	case $URI in
-		*"${mirror#*://}"*)	return $retmirror;;
+		*"${mirror#*://}"*)
+			return $retmirror;;
 		esac
 		retmirror=1
 	done
@@ -173,7 +177,8 @@ GoodDeltaMirror() {
 IsAMatch() {
 	for isamask
 	do	case $FILE in
-		$isamask)	return 0;;
+		$isamask)
+			return 0;;
 		esac
 	done
 	return 1
