@@ -35,11 +35,12 @@ esac
 Error() {
 	Echo "${0##*/}: $*" >&2
 	${LOGGING_ERROR:-:} "$*"
+	return 1
 }
 
 Fatal() {
 	Error "fatal: $*"
-	exit 1
+	exit
 }
 
 if [ -z "${DISTDIR:++}" ] || ! test -d "$DISTDIR"
@@ -47,51 +48,56 @@ then	Info 'Called with wrong arguments'
 	Fatal "second argument \"$DISTDIR\" is not a directory"
 fi
 
+MvDir() {
+	test -d "$1" || return 0
+	mv_dest=$DISTDIR/${1##*/}
+	if ! test -d "$mv_dest"
+	then	mv -- "$1" "$mv_dest" || Error "failed moving $1"
+		return
+	fi
+	test -d "$mv_dest" || continue
+	mv_match=:
+	for mv_i in "$1"/*
+	do	mv_name=${mv_i##*/}
+		case $mv_name in
+		.|..)	continue;;
+		esac
+		test -e "$mv_i" || continue
+		if test -e "$mv_dest/$mv_name"
+		then	mv_match=false
+			continue
+		fi
+		mv -- "$mv_i" "$mv_dest" || mv_match=false
+	done
+	if $mv_match && test -L "$1"
+	then	rm -- "$1" && return
+	else	rmdir -- "$1" && return
+	fi
+	Error "failed moving dir-content of $1/*"
+}
+
 # First argument must be one of
 #  Info  Verbose
 #  :     Non-verbose
-# The other arguments are candidates for files/dirs to be moved to $DISTDIR.
-# Success if at least one file/dir could be moved.
+# Second argument is the filename (without directory)
+# The other arguments are candidates for dirs possibly containing the filename.
+# The first found file/dir is moved to $DISTDIR.
+# Success if destination exists or could be created.
 
 Mv() {
-	# If mv_cont is continue, no (further) dir-tricky_contents
-	#  are moved to avoid mixing dirs
-	mv_cont=
 	mv_info=$1
-	shift
+	mv_name=$2
+	shift 2
+	mv_dest=$DISTDIR/$mv_name
+	! test -e "$mv_dest" || return 0
 	for mv_i
-	do	test -e "$mv_i" || continue
-		mv_dest=$DISTDIR/${mv_i##*/}
-		if ! test -e "$mv_dest"
-		then	$mv_info "Moving source from $mv_i"
-			mv -- "$mv_i" "$mv_dest" && return 0
-			mv_cont=continue
-			Error "failed moving $mv_i"
-			continue
-		fi
-		$mv_cont
-		test -d "$mv_dest" || continue
-		test -d "$mv_i" || continue
-		$mv_info "Moving dir-content of $mv_i/*"
-		mv_match=:
-		for mv_j in "$mv_i"/*
-		do	mv_name=${mv_j##*/}
-			case $mv_name in
-			.|..)	continue;;
-			esac
-			test -e "$mv_j" || continue
-			if test -e "$mv_dest/$mv_name"
-			then	mv_match=false
-				continue
-			fi
-			mv -- "$mv_j" "$mv_dest" || mv_match=false
+	do	test -d "$mv_i" || continue
+		for mv_j in "$mv_i/$mv_name" "$mv_i/${mv_name%.__download__}"
+		do	test -e "$mv_j" || continue
+			$mv_info "Moving source from $mv_j"
+			mv -- "$mv_j" "$mv_dest" && return 0
+			Error "failed moving $mv_j"
 		done
-		if $mv_match && test -L "$mv_i"
-		then	rm -- "$mv_i" && return
-		else	rmdir -- "$mv_i" && return
-		fi
-		mv_cont=continue
-		Error "failed moving dir-content of $mv_i/*"
 	done
 	return 1
 }
@@ -110,7 +116,7 @@ Mv() {
 # not interfere.
 
 for i in "$DISTDIR/.obsolete"/*-src
-do	test -d "$i" && Mv : "$i"
+do	test -d "$i" && MvDir "$i"
 done
 
 # The files in .restricted are always linked if they don't exist
@@ -118,8 +124,7 @@ done
 for i in "$DISTDIR/.restricted"/*
 do	test -e "$i" || continue
 	name=${i##*/}
-	Mv : "$DISTDIR/.obsolete/$name" "$DISTDIR"/.save*/"$name" \
-		|| test -e "$DISTDIR/$name" \
+	Mv : "$name" "$DISTDIR"/.obsolete "$DISTDIR"/.save* \
 		|| ln -s -- "$i" "$DISTDIR/$name"
 done
 
@@ -130,7 +135,7 @@ done
 # Now trickyfetch moves the files if possible
 # Finish if at least one move was successful
 
-Mv Info "$DISTDIR/.obsolete/$FILE" "$DISTDIR"/.save*/"$FILE" && exit
+Mv Info "$FILE" "$DISTDIR"/.obsolete "$DISTDIR"/.save* && exit
 
 # Now we log, since we really have to fetch something and not only to move:
 
