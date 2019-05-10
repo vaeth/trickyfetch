@@ -17,6 +17,10 @@ URI=${1-}
 DISTDIR=${2-}
 FILE=${3-}
 
+obsolete=${DISTDIR}/.obsolete
+save=${DISTDIR}/.save
+restricted=${DISTDIR}/.restricted
+
 Echo() {
 	printf '%s\n' "$*"
 }
@@ -79,30 +83,50 @@ MvDir() {
 # First argument must be one of
 #  Info  Verbose
 #  :     Non-verbose
-# Second argument is the filename (without directory)
+# Second argument is one of
+#  move
+#  link
+# Third argument is the filename (without directory)
 # The other arguments are candidates for dirs possibly containing the filename.
 # The first found file/dir is moved to $DISTDIR.
 # Success if destination exists or could be created.
 
 Mv() {
 	mv_info=$1
-	mv_name=$2
-	shift 2
+	mv_type=$2
+	mv_name=$3
+	shift 3
+	mv_plain=${mv_name%.__download__}
 	mv_dest=$DISTDIR/$mv_name
 	! test -e "$mv_dest" || return 0
 	for mv_i
 	do	test -d "$mv_i" || continue
-		for mv_j in "$mv_i/$mv_name" "$mv_i/${mv_name%.__download__}"
-		do	test -e "$mv_j" || continue
-			$mv_info "Moving source from $mv_j"
-			mv -- "$mv_j" "$mv_dest" && return 0
-			Error "failed moving $mv_j"
-		done
+		mv_source=$mv_i/$mv_plain
+		test -e "$mv_source" || continue
+		if [ "$mv_type" = 'move' ]
+		then	$mv_info "Moving source from $mv_source"
+			mv_cmd=mv
+		else	$mv_info "Symlinking source from $mv_source"
+			mv_cmd='ln -s'
+		fi
+		$mv_cmd -- "$mv_source" "$mv_dest" || {
+			Error "failed to $mv_type $mv_source"
+			continue
+		}
+		# Remove the plain file (if a symlink) or move to a backup
+		mv_ori=$DISTDIR/$mv_plain
+		if [ "$mv_plain" != "$mv_name" ] && test -e "$mv_ori"
+		then	if test -h "$ori"
+			then	rm -- "$ori"
+			else	mv -- "$mv_ori" "$mv_ori".__backup__
+			fi
+		fi
+		return 0
 	done
 	return 1
 }
 
-# These tasks are alway done, even if no file should need to be fetched:
+# These tasks are always done, even if no file should need to be fetched:
 
 # A somewhat special treatment is needed for $DISTDIR/*-src, because the
 # files in these directories are not fetched by
@@ -115,27 +139,30 @@ Mv() {
 # has a reason if he moves some *-src there, so trickyfetch should better
 # not interfere.
 
-for i in "$DISTDIR/.obsolete"/*-src
-do	test -d "$i" && MvDir "$i"
+for i in "$obsolete"/*-src
+do	MvDir "$i"
 done
 
-# The files in .restricted are always linked if they don't exist
+# The files in .restricted are always linked if they don't exist (or are
+# overridden by files from .obsolete or .save*)
 
-for i in "$DISTDIR/.restricted"/*
+for i in "$restricted"/*
 do	test -e "$i" || continue
 	name=${i##*/}
-	Mv : "$name" "$DISTDIR"/.obsolete "$DISTDIR"/.save* \
-		|| ln -s -- "$i" "$DISTDIR/$name"
+	Mv : move "$name" "$obsolete" "$save"* \
+		|| Mv : link "$name" "$restricted"
 done
 
 # An empty filename is something which we assume is already downloaded
 
 [ -z "${FILE:++}" ] && exit
 
-# Now trickyfetch moves the files if possible
+# Now trickyfetch moves/links the files if possible
 # Finish if at least one move was successful
 
-Mv Info "$FILE" "$DISTDIR"/.obsolete "$DISTDIR"/.save* && exit
+Mv Info move "$FILE" "$obsolete" "$save"* \
+	|| Mv Info link "$FILE" "$restricted" \
+	&& exit
 
 # Now we log, since we really have to fetch something and not only to move:
 
