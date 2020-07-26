@@ -2,6 +2,7 @@
 
 (C) Martin Väth (martin at mvath.de).
 The license of this project is the GNU Public License GPL-2.
+SPDX-License-Identifier: GPL-2.0-only
 
 This project is for the Gentoo portage system to cleanup or
 organize your `$DISTDIR`.

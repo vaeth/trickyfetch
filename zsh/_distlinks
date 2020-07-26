@@ -1,4 +1,5 @@
 #compdef distlinks
+# SPDX-License-Identifier: GPL-2.0-only
 local curcontext="$curcontext" state state_descr line
 typeset -A opt_args
 _arguments -C -s -S -A '-*' : \
