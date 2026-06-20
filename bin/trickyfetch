@@ -245,7 +245,7 @@ fi
 # The default wget is actually only the final fallback:
 
 : ${WGET_EXTRA_OPTS:=}
-: ${WGET:=wget -t 1 -T 15 --passive-ftp --no-glob $WGET_EXTRA_OPTS}
+: ${WGET:=wget -t 1 -T 15 --passive-ftp -U \"Portage \(Gentoo\, https://www.gentoo.org\) distfile-fetch\" --no-glob $WGET_EXTRA_OPTS}
 if [ x"${URI##*/}" = x"$FILE" ]
 then	Info "Calling wget to fetch $FILE"
 	eval $WGET -P \"\$DISTDIR\" $WGET_EXTRA_OPTS -- \"\$URI\"
