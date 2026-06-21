@@ -23,6 +23,26 @@ Exec() {
 	"$@" || Fatal "$* failed" $?
 }
 
+Help() {
+	Echo "Usage: ${0##*/} [help|fetch]
+1. Creates \$DISTDIR/.obsolete if it does not exist.
+2. Moves all non-hidden files from \$DISTDIR to \$DISTDIR/.obsolete.
+3. Calls trickyfetch to move forced files from hidden \$DISTDIR subdirectories.
+4. Fetch all files from packages and dependencies of world/world-set,
+   thus leaving in \$DISTDIR/.obsolete only obsolete files.
+
+With argument \"fetch\" only the last steps 3 and 4 are executed."
+	[ "$*" = "help" ] || return 2
+}
+
+
+if [ $# -ne 0 ]
+then	if [ "$*" != fetch ]
+	then	Help "$@"
+		exit
+	fi
+fi
+
 if eix_functions=`eix-functions.sh 2>/dev/null`
 then	eval "$eix_functions"
 	ReadVar distdir DISTDIR
@@ -34,23 +54,34 @@ case $distdir in
 esac || Fatal 'cannot determine DISTDIR'
 
 Exec cd "$distdir"
-if ! test -d '.obsolete'
-then	[ -n "${UID:++}" ] || UID=`id -u`
+
+MdObsolete() {
+	! test -d '.obsolete' || return 0
+	[ -n "${UID:++}" ] || UID=`id -u`
 	if [ "$UID" -eq 0 ]
 	then	Exec mkdir -m 3755 .obsolete
 		Exec chown 'portage:portage' '.obsolete'
 	else	Exec mkdir -m 2755 .obsolete
 		Exec chgrp 'portage' '.obsolete'
 	fi
+}
+
+MoveToObsolete() {
+	Info 'mv -- * .obsolete'
+	for i in *
+	do	if test -r "$i" && ! test -d "$i" && ! test -r ".obsolete/$i"
+		then	mv -- "$i" .obsolete || Fatal "mv $i .obsolete failed"
+		elif [ "$i" != '*' ]
+		then	Warn "not moving to .obsolete: $i"
+		fi
+	done
+}
+
+if [ $# -eq 0 ]
+then	MdObsolete
+	MoveToObsolete
 fi
-Info 'mv -- * .obsolete'
-for i in *
-do	if test -r "$i" && ! test -d "$i" && ! test -r ".obsolete/$i"
-	then	mv -- "$i" .obsolete || Fatal "mv $i .obsolete failed"
-	elif [ "$i" != '*' ]
-	then	Warn "not moving to .obsolete: $i"
-	fi
-done
+
 Info "trickyfetch '' '$distdir' ''"
 trickyfetch '' "$distdir" '' >/dev/null
 PORTAGE_CHECKSUM_FILTER='-* size'

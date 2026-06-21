@@ -1,0 +1,9 @@
+# ChangeLog for trickyfetch:
+
+*trickyfetch-10.3
+	Martin Väth <martin at mvath.de>:
+	- Let the "obsolete" script support the "fetch" argument to only fetch.
+
+*trickyfetch-10.2
+	Martin Väth <martin at mvath.de>:
+	- Set portage as useragent in the built-in FETCHCOMMAND with wget.

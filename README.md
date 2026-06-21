@@ -45,7 +45,7 @@ This change will not modify your "ordinary" work with portage.
 However, the main idea is that now you can cleanup your `$DISTDIR` with
 the following steps:
 
-1. Create a subdirectory `$DISTDIR/.obsolete` and move all regular (i.e. not
+1. Create a subdirectory `$DISTDIR/.obsolete` and move all non-hidden (i.e. not
    starting with `.`) files of `$DISTDIR` into this subdirectory:
    - `cd` _$DISTDIR_  (substite to the correct value for _$DISTDIR_, of course)
    - `mkdir .obsolete`
@@ -61,6 +61,7 @@ the following steps:
 There is also a tiny `bin/obsolete` script in this project which does
 exactly the two steps above (with the __portage-2.2__ variant).
 You might also want to copy this script to your path if you use it often.
+With the argument 'fetch', the script only executes step 2.
 
 That's it: Afterwards, your `$DISTDIR` directory will contain all required
 files, and the `$DISTDIR/.obsolete` subdirectory contains the obsolete files.
